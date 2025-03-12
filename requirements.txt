@@ -1,0 +1,170 @@
+### **Requirements Document: Super Six Academy Mobile App**  
+**Version 1.0**  
+**Date**: [Insert Date]  
+
+---
+
+### **1. Introduction**  
+**Super Six Academy** is a mobile application designed to streamline operations for a Navodaya coaching institute, focusing on **JNVST** and **AISSEE** exam preparation. The app provides a seamless experience for students to access courses, live classes, and study materials, while empowering admins to manage enrollments, schedules, and payments.  
+
+---
+
+### **2. Objectives**  
+- Provide students with easy access to live classes, course materials, and payment plans.  
+- Enable admins to track enrollments, schedule classes, and manage finances.  
+- Ensure security for live classes (block screenshots/recording).  
+- Simplify communication between students and admins.  
+
+---
+
+### **3. User Roles**  
+#### **3.1 Student**  
+- View/purchase courses.  
+- Attend live classes.  
+- Track performance and payments.  
+- Communicate with admins.  
+
+#### **3.2 Admin**  
+- Manage student enrollments.  
+- Schedule live classes.  
+- Upload study materials.  
+- Track payments and send reminders.  
+
+---
+
+### **4. Functional Requirements**  
+
+#### **4.1 Student Features**  
+| **Feature**               | **Description**                                                                 |  
+|---------------------------|---------------------------------------------------------------------------------|  
+| **Authentication**        | Email and password-based login with role selection and email verification.      |  
+| **Home Screen**           | Banner carousel, live class section (join via YouTube), course cards, reviews.  |  
+| **Live Class Security**   | Block screenshots/recording using `react-native-prevent-screenshot`.            |  
+| **Store**                 | Purchase courses (Class 4/8) with Razorpay (EMI: ₹2,000 + ₹500/month).          |  
+| **Chats**                 | Real-time messaging with admins (fee reminders, announcements).                |  
+| **Profile**               | Hamburger menu with quick links. Sub-sections: Info, Courses, Performance, etc. |  
+
+#### **4.2 Admin Features**  
+| **Feature**               | **Description**                                                                 |  
+|---------------------------|---------------------------------------------------------------------------------|  
+| **Dashboard**             | Stats (total students, revenue) + recent activities (enrollments, payments).    |  
+| **Students Management**   | Search students, view details, and manually add students.                       |  
+| **Classes Management**    | Schedule live classes (YouTube links) and view daily schedules.                 |  
+| **Materials Management**  | Upload PDFs/links organized by course (Class 4/8).                              |  
+| **Payments Management**   | Track transactions, pending fees, and send reminders via chats.                 |  
+
+---
+
+### **5. Non-Functional Requirements**  
+| **Category**       | **Requirements**                                                                 |  
+|---------------------|---------------------------------------------------------------------------------|  
+| **Security**        | Email verification, encrypted passwords, secure payments (Razorpay), screenshot blocking for live classes. |  
+| **Performance**     | Real-time updates for chats and live classes. Optimized for 1k+ users.          |  
+| **Usability**       | Intuitive UI with Tailwind CSS. Responsive on Android/iOS.                      |  
+| **Scalability**     | Firebase backend to handle increasing student/admin users.                      |  
+
+---
+
+### **6. Technical Specifications**  
+
+#### **6.1 Frontend**  
+- **Framework**: React Native (Expo).  
+- **Styling**: Tailwind CSS via `nativewind`.  
+- **Navigation**: `react-navigation` (Tabs, Drawer).  
+- **Libraries**:  
+  - `react-native-snap-carousel` (banners/reviews).  
+  - `react-native-youtube-iframe` (live classes).  
+  - `react-native-razorpay` (payment gateway).  
+
+#### **6.2 Backend**  
+- **Database**: Firebase Firestore.  
+- **Authentication**: Firebase Email/Password Auth.  
+- **Storage**: Firebase Cloud Storage (PDFs).  
+- **Realtime Updates**: Firestore listeners for chats/activities.  
+
+#### **6.3 Third-Party Integrations**  
+- **Razorpay**: Handle EMI payments.  
+- **YouTube API**: Embed private livestreams.  
+
+---
+
+### **7. Database Structure**  
+#### **7.1 Collections**  
+1. **Users**  
+   ```javascript  
+   {  
+     role: "student" | "admin",  
+     name: "John Doe",  
+     phone: "+91XXXXXXXXXX",  
+     coursesEnrolled: ["class4"],  
+     payments: [{ amount: 2000, date: "2023-10-01" }],  
+     performance: [{ test: "Math", score: 95 }]  
+   }  
+   ```  
+
+2. **Courses**  
+   ```javascript  
+   {  
+     title: "Class 4 Course",  
+     price: 12000,  
+     installments: { initial: 2000, monthly: 500 }  
+   }  
+   ```  
+
+3. **Activities**  
+   ```javascript  
+   {  
+     type: "new_student" | "payment",  
+     message: "John Doe enrolled",  
+     timestamp: "2023-10-01T10:00:00Z"  
+   }  
+   ```  
+
+---
+
+### **8. User Interface (UI) Design**  
+#### **8.1 Student UI**  
+- **Home Screen**:  
+  - Banner carousel → Live class section → Courses → Social links → Reviews.  
+- **Hamburger Menu**:  
+  - Student’s first name + quick links (Payments, Settings, Profile).  
+
+#### **8.2 Admin UI**  
+- **Bottom Tabs**: Dashboard, Students, Classes, Materials, Payments.  
+- **Dashboard**: Stats cards + activity feed.  
+
+---
+
+### **9. Testing Scenarios**  
+1. **Authentication**: Validate email/password login flow for students/admins.  
+2. **Payment Gateway**: Test EMI transactions (₹2,000 + monthly ₹500).  
+3. **Live Classes**: Verify YouTube embedding and screenshot blocking.  
+4. **Admin Reminders**: Ensure fee reminders appear in student chats.  
+
+---
+
+### **10. Timeline**  
+| **Phase**       | **Duration** | **Deliverables**                                  |  
+|------------------|--------------|---------------------------------------------------|  
+| **Setup**        | 2 weeks      | Expo + Firebase + Tailwind integration.           |  
+| **Student UI**   | 3 weeks      | Home, Store, Chats, Profile screens.              |  
+| **Admin UI**     | 2 weeks      | Dashboard, Students, Classes, Payments sections.  |  
+| **Integration**  | 1 week       | Razorpay, YouTube, security features.             |  
+| **Testing**      | 1 week       | Bug fixes, performance optimization.              |  
+
+---
+
+### **11. Assumptions & Dependencies**  
+- **Assumptions**:  
+  - Students have stable internet for live classes.  
+  - Admins will manually schedule classes via YouTube.  
+- **Dependencies**:  
+  - Razorpay API for payments.  
+  - Firebase services for backend.  
+
+---
+
+### **12. Conclusion**  
+This document outlines the scope, features, and technical roadmap for the **Super Six Academy** app. The next step is to proceed with Phase 1 (Setup) and assign tasks to the development team.  
+
+**Prepared by**: ayush
