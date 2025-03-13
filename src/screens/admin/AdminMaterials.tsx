@@ -2,18 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput } from 'react-native';
 import { db } from '../../config/firebase';
 import { collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
-import * as DocumentPicker from 'expo-document-picker';
 import { StudyMaterial } from '../../types';
-import { uploadPDF } from '../../config/uploadthing';
 
 const AdminMaterials = () => {
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [materialTitle, setMaterialTitle] = useState('');
   const [courseId, setCourseId] = useState('');
-  const [selectedFile, setSelectedFile] = useState<{ uri: string; name: string } | null>(null);
 
   useEffect(() => {
     // Subscribe to study materials collection
@@ -32,36 +28,10 @@ const AdminMaterials = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleUpload = async () => {
-    try {
-      setUploading(true);
-      
-      // Pick a document (PDF)
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
-        copyToCacheDirectory: true,
-      });
-
-      if (result.canceled) {
-        setUploading(false);
-        return;
-      }
-
-      // Get the file URI
-      const fileUri = result.assets[0].uri;
-      const fileName = result.assets[0].name || 'Unnamed document';
-
-      // Store selected file info and show modal
-      setSelectedFile({ uri: fileUri, name: fileName });
-      setMaterialTitle('');
-      setCourseId('');
-      setModalVisible(true);
-      setUploading(false);
-    } catch (error) {
-      console.error('Error picking document:', error);
-      Alert.alert('Error', 'Failed to select document');
-      setUploading(false);
-    }
+  const handleAddMaterial = () => {
+    setMaterialTitle('');
+    setCourseId('');
+    setModalVisible(true);
   };
 
   const handleSubmitMaterial = async () => {
@@ -75,43 +45,25 @@ const AdminMaterials = () => {
       return;
     }
 
-    if (!selectedFile) {
-      Alert.alert('Error', 'No file selected');
-      return;
-    }
-
     try {
-      setUploading(true);
       setModalVisible(false);
       
-      // Upload file to UploadThing
-      const response = await uploadPDF.uploadFile(selectedFile.uri);
-      
-      if (!response?.url) {
-        throw new Error('Failed to get upload URL');
-      }
-
       // Save metadata to Firestore
       await addDoc(collection(db, 'studyMaterials'), {
         title: materialTitle,
         courseId,
         uploadDate: new Date().toISOString(),
-        type: 'pdf',
-        fileName: selectedFile.name,
-        fileUrl: response.url
+        type: 'text'
       });
 
-      Alert.alert('Success', 'Material uploaded successfully');
+      Alert.alert('Success', 'Material added successfully');
       
       // Reset form
-      setSelectedFile(null);
       setMaterialTitle('');
       setCourseId('');
     } catch (error) {
-      console.error('Error in upload process:', error);
-      Alert.alert('Error', 'Failed to upload material');
-    } finally {
-      setUploading(false);
+      console.error('Error in adding material:', error);
+      Alert.alert('Error', 'Failed to add material');
     }
   };
 
@@ -150,7 +102,7 @@ const AdminMaterials = () => {
         <Text style={styles.materialTitle}>{item.title}</Text>
         <Text style={styles.materialDetails}>Course: {item.courseId}</Text>
         <Text style={styles.materialDetails}>
-          Uploaded: {new Date(item.uploadDate).toLocaleDateString()}
+          Added: {new Date(item.uploadDate).toLocaleDateString()}
         </Text>
       </View>
       <TouchableOpacity 
@@ -169,14 +121,9 @@ const AdminMaterials = () => {
         <Text style={styles.headerTitle}>Study Materials</Text>
         <TouchableOpacity 
           style={styles.uploadButton}
-          onPress={handleUpload}
-          disabled={uploading}
+          onPress={handleAddMaterial}
         >
-          {uploading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.uploadButtonText}>Upload New</Text>
-          )}
+          <Text style={styles.uploadButtonText}>Add New</Text>
         </TouchableOpacity>
       </View>
 
@@ -194,23 +141,15 @@ const AdminMaterials = () => {
         />
       )}
 
-      {/* Material Upload Modal */}
       <Modal
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(false);
-          setSelectedFile(null);
-        }}
+        onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Upload Study Material</Text>
-            
-            {selectedFile && (
-              <Text style={styles.fileInfo}>File: {selectedFile.name}</Text>
-            )}
+            <Text style={styles.modalTitle}>Add Study Material</Text>
             
             <TextInput
               style={styles.input}
@@ -227,21 +166,18 @@ const AdminMaterials = () => {
             />
             
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setModalVisible(false);
-                  setSelectedFile(null);
-                }}
+                onPress={() => setModalVisible(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.modalButton, styles.submitButton]}
                 onPress={handleSubmitMaterial}
               >
-                <Text style={styles.submitButtonText}>Upload</Text>
+                <Text style={styles.modalButtonText}>Add</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -332,7 +268,6 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 32,
   },
-  // Modal styles
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -353,12 +288,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  fileInfo: {
-    fontSize: 14,
-    color: '#666',
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -384,14 +313,10 @@ const styles = StyleSheet.create({
   cancelButton: {
     backgroundColor: '#ddd',
   },
-  cancelButtonText: {
-    color: '#333',
-    fontWeight: 'bold',
-  },
   submitButton: {
     backgroundColor: '#0066cc',
   },
-  submitButtonText: {
+  modalButtonText: {
     color: '#fff',
     fontWeight: 'bold',
   },

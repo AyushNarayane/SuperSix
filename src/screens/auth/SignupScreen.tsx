@@ -9,12 +9,13 @@ export const SignupScreen = ({ navigation }: { navigation: any }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [branch, setBranch] = useState<'wardha' | 'nagpur' | 'butibori' | ''>('');
   const [error, setError] = useState<string | null>(null);
 
   const validateForm = () => {
     setError(null);
     
-    if (!name || !phone || !email || !password || !confirmPassword) {
+    if (!name || !phone || !email || !password || !confirmPassword || !branch) {
       setError('All fields are required');
       return false;
     }
@@ -52,6 +53,7 @@ export const SignupScreen = ({ navigation }: { navigation: any }) => {
       const success = await loginWithRole(email, password, 'student', {
         name,
         phone,
+        branch: branch || undefined,
       });
       
       if (!success) {
@@ -110,6 +112,28 @@ export const SignupScreen = ({ navigation }: { navigation: any }) => {
           onChangeText={setConfirmPassword}
           secureTextEntry
         />
+        
+        <Text style={styles.branchLabel}>Select Branch:</Text>
+        <View style={styles.branchContainer}>
+          <TouchableOpacity 
+            style={[styles.branchButton, branch === 'wardha' && styles.activeBranch]}
+            onPress={() => setBranch('wardha')}
+          >
+            <Text style={[styles.branchText, branch === 'wardha' && styles.activeBranchText]}>Wardha</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.branchButton, branch === 'nagpur' && styles.activeBranch]}
+            onPress={() => setBranch('nagpur')}
+          >
+            <Text style={[styles.branchText, branch === 'nagpur' && styles.activeBranchText]}>Nagpur</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.branchButton, branch === 'butibori' && styles.activeBranch]}
+            onPress={() => setBranch('butibori')}
+          >
+            <Text style={[styles.branchText, branch === 'butibori' && styles.activeBranchText]}>Butibori</Text>
+          </TouchableOpacity>
+        </View>
         
         <TouchableOpacity 
           style={styles.button} 
@@ -195,5 +219,33 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: '#007AFF',
     fontWeight: 'bold'
+  },
+  branchLabel: {
+    marginTop: 5,
+    marginBottom: 5,
+    fontWeight: 'bold'
+  },
+  branchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10
+  },
+  branchButton: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: '#ddd',
+    marginHorizontal: 2,
+    alignItems: 'center'
+  },
+  activeBranch: {
+    backgroundColor: '#007AFF'
+  },
+  branchText: {
+    color: '#000',
+    fontSize: 12
+  },
+  activeBranchText: {
+    color: '#fff'
   }
 });

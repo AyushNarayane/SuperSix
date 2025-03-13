@@ -25,7 +25,7 @@ export const useAuth = () => {
     return unsubscribe;
   }, []);
 
-  const loginWithRole = async (email: string, password: string, role: UserRole, additionalData?: { name?: string; phone?: string }) => {
+  const loginWithRole = async (email: string, password: string, role: UserRole, additionalData?: { name?: string; phone?: string; branch?: 'wardha' | 'nagpur' | 'butibori' }) => {
     try {
       setError(null);
       setLoading(true);
@@ -51,6 +51,7 @@ export const useAuth = () => {
         uid:'',
         email,
         phone: additionalData?.phone || '',
+        branch: additionalData?.branch,
         coursesEnrolled: [],
         payments: [],
         performance: []

@@ -12,6 +12,7 @@ export const AdminStudents = () => {
   const [students, setStudents] = useState<StudentWithId[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<StudentWithId[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBranch, setSelectedBranch] = useState<'all' | 'wardha' | 'nagpur' | 'butibori'>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithId | null>(null);
@@ -44,17 +45,24 @@ export const AdminStudents = () => {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredStudents(students);
-    } else {
-      const filtered = students.filter(student => 
+    let filtered = students;
+    
+    // Apply search query filter
+    if (searchQuery.trim() !== '') {
+      filtered = filtered.filter(student => 
         student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.phone.includes(searchQuery)
       );
-      setFilteredStudents(filtered);
     }
-  }, [searchQuery, students]);
+    
+    // Apply branch filter
+    if (selectedBranch !== 'all') {
+      filtered = filtered.filter(student => student.branch === selectedBranch);
+    }
+    
+    setFilteredStudents(filtered);
+  }, [searchQuery, selectedBranch, students]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -145,6 +153,9 @@ export const AdminStudents = () => {
         <Text style={styles.studentDetail}>
           Courses: {item.coursesEnrolled?.length || 0}
         </Text>
+        <Text style={styles.studentDetail}>
+          Branch: {item.branch || 'Not specified'}
+        </Text>
       </View>
       <View style={styles.actionContainer}>
         <TouchableOpacity 
@@ -173,6 +184,7 @@ export const AdminStudents = () => {
           <Text style={styles.detailsName}>{selectedStudent.name || 'Unnamed Student'}</Text>
           <Text style={styles.detailsItem}>Email: {selectedStudent.email || 'No email'}</Text>
           <Text style={styles.detailsItem}>Phone: {selectedStudent.phone || 'No phone'}</Text>
+          <Text style={styles.detailsItem}>Branch: {selectedStudent.branch || 'Not specified'}</Text>
           <Text style={styles.detailsItem}>Address: {selectedStudent.address || 'No address'}</Text>
           <Text style={styles.detailsItem}>Secondary Phone: {selectedStudent.secondaryPhone || 'None'}</Text>
           
@@ -221,10 +233,7 @@ export const AdminStudents = () => {
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.actionButton, styles.removeButton]}
-              onPress={() => {
-                console.log('Remove button pressed for student:', selectedStudent.id);
-                handleRemoveStudent(selectedStudent.id);
-              }}
+              onPress={() => handleRemoveStudent(selectedStudent.id)}
             >
               <Text style={styles.actionButtonText}>Remove</Text>
             </TouchableOpacity>
@@ -268,6 +277,36 @@ export const AdminStudents = () => {
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
+            
+            <View style={styles.branchFilterContainer}>
+              <Text style={styles.filterLabel}>Filter by Branch:</Text>
+              <View style={styles.branchButtonsContainer}>
+                <TouchableOpacity 
+                  style={[styles.branchButton, selectedBranch === 'all' && styles.activeBranchButton]}
+                  onPress={() => setSelectedBranch('all')}
+                >
+                  <Text style={[styles.branchButtonText, selectedBranch === 'all' && styles.activeBranchText]}>All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.branchButton, selectedBranch === 'wardha' && styles.activeBranchButton]}
+                  onPress={() => setSelectedBranch('wardha')}
+                >
+                  <Text style={[styles.branchButtonText, selectedBranch === 'wardha' && styles.activeBranchText]}>Wardha</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.branchButton, selectedBranch === 'nagpur' && styles.activeBranchButton]}
+                  onPress={() => setSelectedBranch('nagpur')}
+                >
+                  <Text style={[styles.branchButtonText, selectedBranch === 'nagpur' && styles.activeBranchText]}>Nagpur</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.branchButton, selectedBranch === 'butibori' && styles.activeBranchButton]}
+                  onPress={() => setSelectedBranch('butibori')}
+                >
+                  <Text style={[styles.branchButtonText, selectedBranch === 'butibori' && styles.activeBranchText]}>Butibori</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
           
           <FlatList
@@ -330,6 +369,39 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  branchFilterContainer: {
+    marginTop: 12,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#333',
+  },
+  branchButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  branchButton: {
+    flex: 1,
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    marginHorizontal: 2,
+    alignItems: 'center',
+  },
+  activeBranchButton: {
+    backgroundColor: '#6200ee',
+  },
+  branchButtonText: {
+    fontSize: 12,
+    color: '#333',
+  },
+  activeBranchText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   studentInfo: {
     flex: 1,

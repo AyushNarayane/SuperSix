@@ -11,6 +11,7 @@ export interface User {
   coursesEnrolled: string[];
   payments: Payment[];
   performance: TestResult[];
+  branch?: 'wardha' | 'nagpur' | 'butibori';
 }
 
 export interface Payment {
