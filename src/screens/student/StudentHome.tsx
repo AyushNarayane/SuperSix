@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Linking, Image, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Linking, Image, ActivityIndicator, FlatList, Modal, TextInput, Alert } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { useAuth } from '../../hooks/useAuth';
 import { db } from '../../config/firebase';
 import { LiveClass } from '../../types';
 
@@ -32,6 +33,7 @@ interface SocialLink {
 }
 
 export const StudentHome = () => {
+  const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList<Banner>>(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,9 @@ export const StudentHome = () => {
   const [liveClasses, setLiveClasses] = useState<LiveClass[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
+  const [reviewText, setReviewText] = useState('');
+  const [rating, setRating] = useState(0);
 
   const socialLinks = [
     { platform: 'YouTube', url: 'https://www.youtube.com/@supersixacademy' },
@@ -134,6 +139,49 @@ export const StudentHome = () => {
     </TouchableOpacity>
   );
 
+  const handleAddReview = async () => {
+    if (!user || !user.name || rating === 0 || !reviewText.trim()) {
+      Alert.alert('Error', 'Please provide both rating and review text');
+      return;
+    }
+
+    try {
+      const newReview = {
+        name: user.name,
+        rating,
+        text: reviewText.trim(),
+        createdAt: new Date().toISOString()
+      };
+
+      const docRef = await addDoc(collection(db, 'reviews'), newReview);
+      const reviewWithId = { ...newReview, id: docRef.id };
+      setReviews([reviewWithId, ...reviews]);
+      setReviewText('');
+      setRating(0);
+      setIsReviewModalVisible(false);
+    } catch (err) {
+      console.error('Error adding review:', err);
+      Alert.alert('Error', 'Failed to submit review. Please try again.');
+    }
+  };
+
+  const renderStars = () => {
+    return (
+      <View style={styles.starsContainer}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <TouchableOpacity
+            key={star}
+            onPress={() => setRating(star)}
+          >
+            <Text style={styles.starButton}>
+              {star <= rating ? '⭐' : '☆'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
   const renderReview = (item: Review) => (
     <View key={item.id} style={styles.reviewCard}>
       <Text style={styles.reviewName}>{item.name}</Text>
@@ -220,7 +268,15 @@ export const StudentHome = () => {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Student Reviews</Text>
+        <View style={styles.reviewHeader}>
+          <Text style={styles.sectionTitle}>Student Reviews</Text>
+          <TouchableOpacity 
+            style={styles.addReviewButton}
+            onPress={() => setIsReviewModalVisible(true)}
+          >
+            <Text style={styles.addReviewButtonText}>Add Review</Text>
+          </TouchableOpacity>
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {reviews.length > 0 ? (
             reviews.map(renderReview)
@@ -228,12 +284,126 @@ export const StudentHome = () => {
             <Text style={styles.emptyText}>No reviews yet</Text>
           )}
         </ScrollView>
+
+        <Modal
+          visible={isReviewModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setIsReviewModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add Your Review</Text>
+              {renderStars()}
+              <TextInput
+                style={styles.reviewInput}
+                placeholder="Write your review here..."
+                value={reviewText}
+                onChangeText={setReviewText}
+                multiline
+                numberOfLines={4}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setIsReviewModalVisible(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.submitButton]}
+                  onPress={handleAddReview}
+                >
+                  <Text style={styles.submitButtonText}>Submit</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  addReviewButton: {
+    backgroundColor: '#6200ee',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  addReviewButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  starButton: {
+    fontSize: 30,
+    marginHorizontal: 5,
+  },
+  reviewInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 20,
+    textAlignVertical: 'top',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+  },
+  submitButton: {
+    backgroundColor: '#6200ee',
+  },
+  cancelButtonText: {
+    color: '#333',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  submitButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
