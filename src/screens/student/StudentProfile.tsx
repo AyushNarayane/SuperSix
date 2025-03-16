@@ -1,92 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { User, Payment, TestResult } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 
-interface UserProfile {
-  name: string;
-  email: string;
-  phone: string;
-  coursesEnrolled: string[];
-  payments: Payment[];
-  performance: Performance[];
-}
+const StudentProfile = () => {
+  const { user, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState('info');
 
-interface Payment {
-  amount: number;
-  date: string;
-  status: 'paid' | 'pending';
-  description: string;
-}
-
-interface Performance {
-  test: string;
-  score: number;
-  date: string;
-}
-
-export const StudentProfile = () => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'info' | 'courses' | 'performance' | 'payments'>('info');
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!user?.uid) return;
-      
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          setProfile(userDoc.data() as UserProfile);
-        } else {
-          setError('User profile not found');
-        }
-      } catch (err) {
-        setError('Failed to load profile data');
-        console.error('Error fetching profile:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserProfile();
-  }, [user]);
-
-  const renderInfoTab = () => (
-    <View style={styles.tabContent}>
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>Name:</Text>
-        <Text style={styles.infoValue}>{profile?.name || 'Not available'}</Text>
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#ff6b6b" />
+        <Text style={styles.emptyText}>Loading profile...</Text>
       </View>
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>Email:</Text>
-        <Text style={styles.infoValue}>{profile?.email || 'Not available'}</Text>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.emptyText}>Unable to load profile. Please try again.</Text>
       </View>
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>Phone:</Text>
-        <Text style={styles.infoValue}>{profile?.phone || 'Not available'}</Text>
+    );
+  }
+
+  const renderBasicInfo = () => (
+    <View style={styles.sectionContainer}>
+      <Text style={styles.sectionTitle}>Basic Information</Text>
+      <View style={styles.infoItem}>
+        <Text style={styles.label}>Name:</Text>
+        <Text style={styles.value}>{user.name}</Text>
       </View>
-      <TouchableOpacity style={styles.editButton}>
-        <Text style={styles.editButtonText}>Edit Profile</Text>
-      </TouchableOpacity>
+      <View style={styles.infoItem}>
+        <Text style={styles.label}>Email:</Text>
+        <Text style={styles.value}>{user.email || 'Not provided'}</Text>
+      </View>
+      <View style={styles.infoItem}>
+        <Text style={styles.label}>Phone:</Text>
+        <Text style={styles.value}>{user.phone}</Text>
+      </View>
+      <View style={styles.infoItem}>
+        <Text style={styles.label}>Branch:</Text>
+        <Text style={styles.value}>{user.branch || 'Not specified'}</Text>
+      </View>
     </View>
   );
 
-  const renderCoursesTab = () => (
-    <View style={styles.tabContent}>
-      {profile?.coursesEnrolled && profile.coursesEnrolled.length > 0 ? (
-        profile.coursesEnrolled.map((course, index) => (
+  const renderCourses = () => (
+    <View style={styles.sectionContainer}>
+      <Text style={styles.sectionTitle}>Enrolled Courses</Text>
+      {user.coursesEnrolled.length > 0 ? (
+        user.coursesEnrolled.map((course, index) => (
           <View key={index} style={styles.courseItem}>
-            <Text style={styles.courseTitle}>{course === 'class4' ? 'Class 4 Course' : 'Class 8 Course'}</Text>
-            <TouchableOpacity style={styles.viewButton}>
-              <Text style={styles.viewButtonText}>View Details</Text>
-            </TouchableOpacity>
+            <Text style={styles.courseTitle}>{course}</Text>
           </View>
         ))
       ) : (
@@ -95,14 +61,15 @@ export const StudentProfile = () => {
     </View>
   );
 
-  const renderPerformanceTab = () => (
-    <View style={styles.tabContent}>
-      {profile?.performance && profile.performance.length > 0 ? (
-        profile.performance.map((item, index) => (
+  const renderPerformance = () => (
+    <View style={styles.sectionContainer}>
+      <Text style={styles.sectionTitle}>Performance</Text>
+      {user.performance.length > 0 ? (
+        user.performance.map((result, index) => (
           <View key={index} style={styles.performanceItem}>
-            <Text style={styles.performanceTest}>{item.test}</Text>
-            <Text style={styles.performanceScore}>{item.score}%</Text>
-            <Text style={styles.performanceDate}>{new Date(item.date).toLocaleDateString()}</Text>
+            <Text style={styles.testName}>{result.test}</Text>
+            <Text style={styles.score}>Score: {result.score}</Text>
+            <Text style={styles.date}>Date: {result.date}</Text>
           </View>
         ))
       ) : (
@@ -111,301 +78,195 @@ export const StudentProfile = () => {
     </View>
   );
 
-  const renderPaymentsTab = () => (
-    <View style={styles.tabContent}>
-      {profile?.payments && profile.payments.length > 0 ? (
-        profile.payments.map((payment, index) => (
+  const renderPayments = () => (
+    <View style={styles.sectionContainer}>
+      <Text style={styles.sectionTitle}>Payment History</Text>
+      {user.payments.length > 0 ? (
+        user.payments.map((payment, index) => (
           <View key={index} style={styles.paymentItem}>
-            <View>
-              <Text style={styles.paymentDescription}>{payment.description}</Text>
-              <Text style={styles.paymentDate}>{new Date(payment.date).toLocaleDateString()}</Text>
-            </View>
-            <View>
-              <Text style={styles.paymentAmount}>₹{payment.amount}</Text>
-              <Text style={[styles.paymentStatus, payment.status === 'paid' ? styles.paidStatus : styles.pendingStatus]}>
-                {payment.status.toUpperCase()}
-              </Text>
-            </View>
+            <Text style={styles.amount}>Amount: ₹{payment.amount}</Text>
+            <Text style={styles.paymentType}>Type: {payment.type}</Text>
+            <Text style={styles.paymentStatus}>Status: {payment.status}</Text>
+            <Text style={styles.date}>Date: {payment.date}</Text>
           </View>
         ))
       ) : (
-        <Text style={styles.emptyText}>No payment history</Text>
+        <Text style={styles.emptyText}>No payment history available</Text>
       )}
     </View>
   );
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6200ee" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
-      </View>
-    );
-  }
+  const renderAssignments = () => (
+    <View style={styles.sectionContainer}>
+      <Text style={styles.sectionTitle}>Assignments</Text>
+      <Text style={styles.emptyText}>No assignments available</Text>
+    </View>
+  );
 
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'info':
+        return renderBasicInfo();
+      case 'courses':
+        return renderCourses();
+      case 'performance':
+        return renderPerformance();
+      case 'payments':
+        return renderPayments();
+      case 'assignments':
+        return renderAssignments();
+      default:
+        return renderBasicInfo();
+    }
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Image 
-          source={{ uri: 'https://via.placeholder.com/100' }} 
-          style={styles.profileImage} 
-        />
-        <Text style={styles.profileName}>{profile?.name || 'Student'}</Text>
+    <View style={styles.container}>
+      <View style={styles.tabContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TabButton title="Info" isActive={activeTab === 'info'} onPress={() => setActiveTab('info')} />
+          <TabButton title="Courses" isActive={activeTab === 'courses'} onPress={() => setActiveTab('courses')} />
+          <TabButton title="Performance" isActive={activeTab === 'performance'} onPress={() => setActiveTab('performance')} />
+          <TabButton title="Payments" isActive={activeTab === 'payments'} onPress={() => setActiveTab('payments')} />
+          <TabButton title="Assignments" isActive={activeTab === 'assignments'} onPress={() => setActiveTab('assignments')} />
+        </ScrollView>
       </View>
-
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'info' && styles.activeTabButton]} 
-          onPress={() => setActiveTab('info')}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'info' && styles.activeTabText]}>Info</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'courses' && styles.activeTabButton]} 
-          onPress={() => setActiveTab('courses')}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'courses' && styles.activeTabText]}>Courses</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'performance' && styles.activeTabButton]} 
-          onPress={() => setActiveTab('performance')}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'performance' && styles.activeTabText]}>Performance</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'payments' && styles.activeTabButton]} 
-          onPress={() => setActiveTab('payments')}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'payments' && styles.activeTabText]}>Payments</Text>
-        </TouchableOpacity>
-      </View>
-
-      {activeTab === 'info' && renderInfoTab()}
-      {activeTab === 'courses' && renderCoursesTab()}
-      {activeTab === 'performance' && renderPerformanceTab()}
-      {activeTab === 'payments' && renderPaymentsTab()}
-    </ScrollView>
+      <ScrollView style={styles.content}>
+        {renderContent()}
+      </ScrollView>
+    </View>
   );
 };
+
+interface TabButtonProps {
+  title: string;
+  isActive: boolean;
+  onPress: () => void;
+}
+
+const TabButton: React.FC<TabButtonProps> = ({ title, isActive, onPress }) => (
+  <View style={[styles.tab, isActive && styles.activeTab]}>
+    <Text style={[styles.tabText, isActive && styles.activeTabText]} onPress={onPress}>
+      {title}
+    </Text>
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#6200ee',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    color: 'red',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#6200ee',
-    padding: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  header: {
-    alignItems: 'center',
-    padding: 20,
     backgroundColor: '#fff',
+  },
+  tabContainer: {
+    flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 10,
-  },
-  profileName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  tabsContainer: {
-    flexDirection: 'row',
     backgroundColor: '#fff',
-    marginTop: 10,
-    marginBottom: 10,
-    borderRadius: 8,
-    overflow: 'hidden',
   },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
+  tab: {
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    borderBottomColor: '#ff6b6b',
   },
-  activeTabButton: {
-    borderBottomColor: '#6200ee',
-  },
-  tabButtonText: {
+  tabText: {
+    fontSize: 16,
     color: '#666',
-    fontWeight: '500',
   },
   activeTabText: {
-    color: '#6200ee',
+    color: '#ff6b6b',
     fontWeight: 'bold',
   },
-  tabContent: {
-    backgroundColor: '#fff',
+  content: {
+    flex: 1,
     padding: 15,
-    borderRadius: 8,
-    marginHorizontal: 10,
+  },
+  sectionContainer: {
     marginBottom: 20,
   },
-  infoRow: {
-    flexDirection: 'row',
-    marginBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    paddingBottom: 10,
-  },
-  infoLabel: {
-    width: 80,
+  sectionTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
+    marginBottom: 15,
     color: '#333',
   },
-  infoValue: {
-    flex: 1,
+  infoItem: {
+    flexDirection: 'row',
+    marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+  },
+  label: {
+    width: 80,
+    fontSize: 16,
     color: '#666',
   },
-  editButton: {
-    backgroundColor: '#6200ee',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  editButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  value: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
   },
   courseItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    padding: 15,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    marginBottom: 10,
   },
   courseTitle: {
     fontSize: 16,
-    fontWeight: '500',
     color: '#333',
-  },
-  viewButton: {
-    backgroundColor: '#e0e0e0',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 5,
-  },
-  viewButtonText: {
-    color: '#333',
-    fontWeight: '500',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#666',
-    fontStyle: 'italic',
-    paddingVertical: 20,
   },
   performanceItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    padding: 15,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    marginBottom: 10,
   },
-  performanceTest: {
-    flex: 2,
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  performanceScore: {
-    flex: 1,
+  testName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#6200ee',
-    textAlign: 'center',
+    color: '#333',
+    marginBottom: 5,
   },
-  performanceDate: {
-    flex: 1,
-    fontSize: 14,
+  score: {
+    fontSize: 15,
     color: '#666',
-    textAlign: 'right',
+  },
+  date: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 5,
   },
   paymentItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    padding: 15,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    marginBottom: 10,
   },
-  paymentDescription: {
+  amount: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: 'bold',
     color: '#333',
     marginBottom: 5,
   },
-  paymentDate: {
-    fontSize: 14,
+  paymentType: {
+    fontSize: 15,
     color: '#666',
   },
-  paymentAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'right',
-    marginBottom: 5,
-  },
   paymentStatus: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    textAlign: 'right',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
+    fontSize: 15,
+    color: '#666',
   },
-  paidStatus: {
-    backgroundColor: '#e6f7ed',
-    color: '#00a651',
-  },
-  pendingStatus: {
-    backgroundColor: '#fff4e5',
-    color: '#ff9800',
+  emptyText: {
+    fontSize: 16,
+    color: '#888',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
+
+export default StudentProfile;

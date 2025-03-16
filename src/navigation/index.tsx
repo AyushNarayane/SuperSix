@@ -12,7 +12,7 @@ import { TouchableOpacity, Text } from 'react-native';
 import { StudentHome } from '../screens/student/StudentHome';
 import { StudentStore } from '../screens/student/StudentStore';
 import { StudentChats } from '../screens/student/StudentChats';
-import { StudentProfile } from '../screens/student/StudentProfile';
+import StudentProfile from '../screens/student/StudentProfile';
 import StudentMaterials from '../screens/student/StudentMaterials';
 import { StudentQuiz } from '../screens/student/StudentQuiz';
 
