@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput, Button } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import { uploadPDF } from '../../config/cloudinary';
 import { db } from '../../config/firebase';
 import { collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { StudyMaterial } from '../../types';
@@ -10,6 +12,7 @@ const AdminMaterials = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [materialTitle, setMaterialTitle] = useState('');
   const [courseId, setCourseId] = useState('');
+  const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
 
   useEffect(() => {
     // Subscribe to study materials collection
@@ -34,6 +37,21 @@ const AdminMaterials = () => {
     setModalVisible(true);
   };
 
+  const handleFilePick = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+      });
+
+      if (!result.canceled) {
+        setSelectedFile(result.assets[0]);
+      }
+    } catch (err) {
+      console.error('Error picking file:', err);
+      Alert.alert('Error', 'Failed to pick file');
+    }
+  };
+
   const handleSubmitMaterial = async () => {
     if (!materialTitle.trim()) {
       Alert.alert('Error', 'Title is required');
@@ -45,15 +63,29 @@ const AdminMaterials = () => {
       return;
     }
 
+    if (!selectedFile) {
+      Alert.alert('Error', 'Please select a PDF file');
+      return;
+    }
+
     try {
       setModalVisible(false);
+      setLoading(true);
+      
+      // Upload file to Cloudinary
+      const fileUrl = await uploadPDF(selectedFile);
+      
+      if (!fileUrl) {
+        throw new Error('Failed to get file URL from Cloudinary');
+      }
       
       // Save metadata to Firestore
       await addDoc(collection(db, 'studyMaterials'), {
         title: materialTitle,
         courseId,
         uploadDate: new Date().toISOString(),
-        type: 'text'
+        type: 'pdf',
+        fileUrl
       });
 
       Alert.alert('Success', 'Material added successfully');
@@ -61,9 +93,13 @@ const AdminMaterials = () => {
       // Reset form
       setMaterialTitle('');
       setCourseId('');
+      setSelectedFile(null);
     } catch (error) {
       console.error('Error in adding material:', error);
-      Alert.alert('Error', 'Failed to add material');
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to add material');
+      setModalVisible(true); // Keep modal open on error
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -165,6 +201,15 @@ const AdminMaterials = () => {
               onChangeText={setCourseId}
             />
             
+            <TouchableOpacity
+              style={styles.filePickerButton}
+              onPress={handleFilePick}
+            >
+              <Text style={styles.filePickerButtonText}>
+                {selectedFile ? 'PDF Selected' : 'Select PDF'}
+              </Text>
+            </TouchableOpacity>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
@@ -317,6 +362,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#0066cc',
   },
   modalButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  filePickerButton: {
+    backgroundColor: '#4CAF50',
+    padding: 10,
+    borderRadius: 4,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  filePickerButtonText: {
     color: '#fff',
     fontWeight: 'bold',
   },

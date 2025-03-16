@@ -41,6 +41,11 @@ const StudentMaterials = () => {
 
   const handleDownload = async (material: StudyMaterial) => {
     try {
+      if (!material.fileUrl) {
+        Alert.alert('Error', 'No file available for download');
+        return;
+      }
+
       // Open the PDF URL in the device's browser or PDF viewer
       await Linking.openURL(material.fileUrl);
     } catch (error) {
