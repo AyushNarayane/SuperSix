@@ -3,6 +3,7 @@ import { auth, db } from '../config/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { User, UserRole } from '../types';
+import { generateStudentId } from '../services/branchCounter';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -30,12 +31,25 @@ export const useAuth = () => {
       setError(null);
       setLoading(true);
       
+      // For students, generate ID before creating the account
+      let studentId = '';
+      if (role === 'student' && additionalData?.branch) {
+        try {
+          studentId = await generateStudentId(additionalData.branch);
+        } catch (error) {
+          throw new Error('Failed to generate student ID. Please try again.');
+        }
+      }
+      
       let currentUser;
       try {
         // Try to sign in first
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         currentUser = userCredential.user;
       } catch (signInError) {
+        if (role === 'student' && !studentId) {
+          throw new Error('Student ID generation is required for registration');
+        }
         // If sign in fails, create a new user
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         currentUser = userCredential.user;
@@ -44,11 +58,11 @@ export const useAuth = () => {
       if (!currentUser) {
         throw new Error('Authentication failed');
       }
-      
+
       const userData: User = {
         role,
         name: additionalData?.name || '',
-        uid:'',
+        uid: studentId || currentUser.uid,
         email,
         phone: additionalData?.phone || '',
         branch: additionalData?.branch,
