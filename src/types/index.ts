@@ -53,8 +53,11 @@ export interface LiveClass {
   courseId: string;
   startTime: string;
   endTime: string;
-  youtubeLink: string;
+  googleMeetLink: string;
+  duration: number; // in minutes
   status: 'scheduled' | 'ongoing' | 'completed';
+  createdBy: string;
+  createdAt: string;
 }
 
 export interface StudyMaterial {

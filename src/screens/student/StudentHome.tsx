@@ -64,7 +64,7 @@ export const StudentHome = () => {
         setBanners(bannersData);
 
         // Fetch live classes
-        const classesSnapshot = await getDocs(collection(db, 'liveClasses'));
+        const classesSnapshot = await getDocs(collection(db, 'classes'));
         const classesData = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as LiveClass[];
         setLiveClasses(classesData.filter(c => c.status !== 'completed'));
 
@@ -116,14 +116,22 @@ export const StudentHome = () => {
   }, [currentIndex, banners.length]);
 
   const renderLiveClass = (item: LiveClass) => (
-    <TouchableOpacity key={item.id} style={styles.liveClassCard}>
+    <View style={styles.liveClassCard}>
       <Text style={styles.classTitle}>{item.title}</Text>
       <Text style={styles.classInfo}>{new Date(item.startTime).toLocaleTimeString()} - {item.status}</Text>
-    </TouchableOpacity>
+      {item.googleMeetLink && (
+        <TouchableOpacity 
+          style={styles.meetButton}
+          onPress={() => Linking.openURL(item.googleMeetLink)}
+        >
+          <Text style={styles.meetButtonText}>Join Meet</Text>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 
   const renderCourse = (item: Course) => (
-    <TouchableOpacity key={item.id} style={styles.courseCard}>
+    <TouchableOpacity style={styles.courseCard}>
       <Text style={styles.courseTitle}>{item.title}</Text>
       <Text style={styles.coursePrice}>₹{item.price}</Text>
     </TouchableOpacity>
@@ -131,7 +139,7 @@ export const StudentHome = () => {
 
   const renderSocialLink = (item: SocialLink) => (
     <TouchableOpacity
-      key={item.platform}
+     
       style={styles.socialButton}
       onPress={() => Linking.openURL(item.url)}
     >
@@ -242,7 +250,14 @@ export const StudentHome = () => {
         <Text style={styles.sectionTitle}>Live Classes</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {liveClasses.length > 0 ? (
-            liveClasses.map(renderLiveClass)
+            <FlatList
+              horizontal
+              data={liveClasses}
+              renderItem={({ item }) => renderLiveClass(item)}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.liveClassesContainer}
+              keyExtractor={(item) => item.id}
+            />
           ) : (
             <Text style={styles.emptyText}>No live classes scheduled</Text>
           )}
@@ -253,7 +268,7 @@ export const StudentHome = () => {
         <Text style={styles.sectionTitle}>Popular Courses</Text>
         <View style={styles.coursesGrid}>
           {courses.length > 0 ? (
-            courses.map(renderCourse)
+            courses.map((item) => React.cloneElement(renderCourse(item), { key: item.id }))
           ) : (
             <Text style={styles.emptyText}>No courses available</Text>
           )}
@@ -263,7 +278,7 @@ export const StudentHome = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Follow Us</Text>
         <View style={styles.socialContainer}>
-          {socialLinks.map(renderSocialLink)}
+          {socialLinks.map((item) => React.cloneElement(renderSocialLink(item), { key: item.platform }))}
         </View>
       </View>
 
@@ -503,6 +518,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
   },
+  liveClassesContainer: {
+    paddingHorizontal: 15,
+  },
   classTitle: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -587,5 +605,18 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#666',
     fontStyle: 'italic',
+  },
+  meetButton: {
+    backgroundColor: '#34A853',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
+  meetButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });

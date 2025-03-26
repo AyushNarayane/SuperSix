@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Alert, Modal, ScrollView } from 'react-native';
 import { collection, query, getDocs, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { LiveClass } from '../../types';
+import { useAuth } from '../../hooks/useAuth';
 
 interface ClassWithId extends LiveClass {
   id: string;
@@ -10,6 +11,7 @@ interface ClassWithId extends LiveClass {
 }
 
 export const AdminClasses = () => {
+  const { user } = useAuth();
   const [classes, setClasses] = useState<ClassWithId[]>([]);
   const [filteredClasses, setFilteredClasses] = useState<ClassWithId[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,8 +26,11 @@ export const AdminClasses = () => {
     courseId: '',
     startTime: '',
     endTime: '',
-    youtubeLink: '',
-    status: 'scheduled' as 'scheduled' | 'ongoing' | 'completed'
+    googleMeetLink: '',
+    duration: 0,
+    status: 'scheduled' as 'scheduled' | 'ongoing' | 'completed',
+    createdBy: '',
+    createdAt: ''
   });
   const [editMode, setEditMode] = useState(false);
 
@@ -89,8 +94,11 @@ export const AdminClasses = () => {
       courseId: '',
       startTime: '',
       endTime: '',
-      youtubeLink: '',
-      status: 'scheduled' as const
+      googleMeetLink: '',
+      duration: 0,
+      status: 'scheduled' as 'scheduled' | 'ongoing' | 'completed',
+      createdBy: '',
+      createdAt: new Date().toISOString()
     });
     setModalVisible(true);
   };
@@ -103,7 +111,10 @@ export const AdminClasses = () => {
       courseId: cls.courseId || '',
       startTime: cls.startTime || '',
       endTime: cls.endTime || '',
-      youtubeLink: cls.youtubeLink || '',
+      googleMeetLink: cls.googleMeetLink || '',
+      duration: cls.duration || 0,
+      createdBy: cls.createdBy || '',
+      createdAt: cls.createdAt || '',
       status: cls.status || 'scheduled'
     });
     setSelectedClass(cls);
@@ -116,6 +127,11 @@ export const AdminClasses = () => {
       return;
     }
 
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to perform this action');
+      return;
+    }
+
     try {
       if (editMode && selectedClass) {
         // Update existing class
@@ -125,8 +141,10 @@ export const AdminClasses = () => {
           courseId: newClass.courseId,
           startTime: newClass.startTime,
           endTime: newClass.endTime,
-          youtubeLink: newClass.youtubeLink,
+          googleMeetLink: newClass.googleMeetLink,
+          duration: newClass.duration,
           status: newClass.status,
+          createdBy: user.name,
           updatedAt: serverTimestamp()
         });
 
@@ -145,13 +163,15 @@ export const AdminClasses = () => {
           courseId: newClass.courseId,
           startTime: newClass.startTime,
           endTime: newClass.endTime,
-          youtubeLink: newClass.youtubeLink,
+          googleMeetLink: newClass.googleMeetLink,
+          duration: newClass.duration,
           status: newClass.status,
+          createdBy: user.name,
           createdAt: serverTimestamp()
         };
 
         const docRef = await addDoc(collection(db, 'classes'), newClassData);
-        setClasses([...classes, { id: docRef.id, ...newClassData, createdAt: new Date() } as ClassWithId]);
+        setClasses([...classes, { id: docRef.id, ...newClassData, createdAt: new Date().toISOString() } as ClassWithId]);
 
         Alert.alert('Success', 'Class added successfully');
       }
@@ -165,28 +185,14 @@ export const AdminClasses = () => {
   };
 
   const handleDeleteClass = async (classId: string) => {
-    Alert.alert(
-      'Delete Class',
-      'Are you sure you want to delete this class? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteDoc(doc(db, 'classes', classId));
-              setClasses(classes.filter(cls => cls.id !== classId));
-              setSelectedClass(null);
-              Alert.alert('Success', 'Class deleted successfully');
-            } catch (err) {
-              console.error('Error deleting class:', err);
-              Alert.alert('Error', 'Failed to delete class');
-            }
-          }
-        }
-      ]
-    );
+    try {
+      await deleteDoc(doc(db, 'classes', classId));
+      setClasses(classes.filter(cls => cls.id !== classId));
+      setSelectedClass(null);
+    } catch (err) {
+      console.error('Error deleting class:', err);
+      Alert.alert('Error', 'Failed to delete class');
+    }
   };
 
   const renderClassItem = ({ item }: { item: ClassWithId }) => (
@@ -211,6 +217,12 @@ export const AdminClasses = () => {
           onPress={() => handleViewDetails(item)}
         >
           <Text style={styles.viewButtonText}>View</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.deleteButton]}
+          onPress={() => handleDeleteClass(item.id)}
+        >
+          <Text style={styles.actionButtonText}>Delete</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -247,8 +259,23 @@ export const AdminClasses = () => {
           </View>
           
           <View style={styles.detailsSection}>
-            <Text style={styles.detailsLabel}>YouTube Link:</Text>
-            <Text style={styles.detailsValue}>{selectedClass.youtubeLink || 'Not specified'}</Text>
+            <Text style={styles.detailsLabel}>Google Meet Link:</Text>
+            <Text style={styles.detailsValue}>{selectedClass.googleMeetLink || 'Not specified'}</Text>
+          </View>
+          
+          <View style={styles.detailsSection}>
+            <Text style={styles.detailsLabel}>Duration:</Text>
+            <Text style={styles.detailsValue}>{selectedClass.duration} minutes</Text>
+          </View>
+          
+          <View style={styles.detailsSection}>
+            <Text style={styles.detailsLabel}>Created By:</Text>
+            <Text style={styles.detailsValue}>{selectedClass.createdBy || 'Not specified'}</Text>
+          </View>
+          
+          <View style={styles.detailsSection}>
+            <Text style={styles.detailsLabel}>Created At:</Text>
+            <Text style={styles.detailsValue}>{new Date(selectedClass.createdAt).toLocaleString() || 'Not specified'}</Text>
           </View>
           
           <View style={styles.detailsSection}>
@@ -282,9 +309,9 @@ export const AdminClasses = () => {
 
   const renderClassForm = () => (
     <Modal
-      visible={modalVisible}
       animationType="slide"
       transparent={true}
+      visible={modalVisible}
       onRequestClose={() => setModalVisible(false)}
     >
       <View style={styles.modalContainer}>
@@ -294,76 +321,86 @@ export const AdminClasses = () => {
               {editMode ? 'Edit Class' : 'Add New Class'}
             </Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Text style={styles.closeButton}>Cancel</Text>
+              <Text style={{ color: '#fff' }}>Close</Text>
             </TouchableOpacity>
           </View>
+          <ScrollView style={styles.formScrollContainer}>
+            <View style={styles.formContainer}>
+              <Text style={styles.inputLabel}>Title *</Text>
+              <TextInput
+                style={styles.input}
+                value={newClass.title}
+                onChangeText={(text) => setNewClass({...newClass, title: text})}
+                placeholder="Class title"
+              />
 
-          <View style={styles.formContainer}>
-            <Text style={styles.inputLabel}>Title *</Text>
-            <TextInput
-              style={styles.input}
-              value={newClass.title}
-              onChangeText={(text) => setNewClass({...newClass, title: text})}
-              placeholder="Class title"
-            />
+              <Text style={styles.inputLabel}>Course ID</Text>
+              <TextInput
+                style={styles.input}
+                value={newClass.courseId}
+                onChangeText={(text) => setNewClass({...newClass, courseId: text})}
+                placeholder="Course ID"
+              />
 
-            <Text style={styles.inputLabel}>Course ID</Text>
-            <TextInput
-              style={styles.input}
-              value={newClass.courseId}
-              onChangeText={(text) => setNewClass({...newClass, courseId: text})}
-              placeholder="Course ID"
-            />
+              <Text style={styles.inputLabel}>Start Time</Text>
+              <TextInput
+                style={styles.input}
+                value={newClass.startTime}
+                onChangeText={(text) => setNewClass({...newClass, startTime: text})}
+                placeholder="YYYY-MM-DD HH:MM:SS"
+              />
 
-            <Text style={styles.inputLabel}>Start Time</Text>
-            <TextInput
-              style={styles.input}
-              value={newClass.startTime}
-              onChangeText={(text) => setNewClass({...newClass, startTime: text})}
-              placeholder="YYYY-MM-DD HH:MM:SS"
-            />
+              <Text style={styles.inputLabel}>End Time</Text>
+              <TextInput
+                style={styles.input}
+                value={newClass.endTime}
+                onChangeText={(text) => setNewClass({...newClass, endTime: text})}
+                placeholder="YYYY-MM-DD HH:MM:SS"
+              />
 
-            <Text style={styles.inputLabel}>End Time</Text>
-            <TextInput
-              style={styles.input}
-              value={newClass.endTime}
-              onChangeText={(text) => setNewClass({...newClass, endTime: text})}
-              placeholder="YYYY-MM-DD HH:MM:SS"
-            />
+              <Text style={styles.inputLabel}>Google Meet Link</Text>
+              <TextInput
+                style={styles.input}
+                value={newClass.googleMeetLink}
+                onChangeText={(text) => setNewClass({...newClass, googleMeetLink: text})}
+                placeholder="https://meet.google.com/..."
+              />
 
-            <Text style={styles.inputLabel}>YouTube Link</Text>
-            <TextInput
-              style={styles.input}
-              value={newClass.youtubeLink}
-              onChangeText={(text) => setNewClass({...newClass, youtubeLink: text})}
-              placeholder="https://youtube.com/..."
-            />
-            
-            <Text style={styles.inputLabel}>Status</Text>
-            <TextInput
-              style={styles.input}
-              value={newClass.status}
-              onChangeText={(text) => setNewClass({...newClass, status: text as 'scheduled' | 'ongoing' | 'completed'})}
-              placeholder="scheduled, ongoing, or completed"
-            />
+              <Text style={styles.inputLabel}>Duration (minutes)</Text>
+              <TextInput
+                style={styles.input}
+                value={String(newClass.duration)}
+                onChangeText={(text) => setNewClass({...newClass, duration: parseInt(text) || 0})}
+                placeholder="Enter duration in minutes"
+                keyboardType="numeric"
+              />
+              
+              <Text style={styles.inputLabel}>Status</Text>
+              <TextInput
+                style={styles.input}
+                value={newClass.status}
+                onChangeText={(text) => setNewClass({...newClass, status: text as 'scheduled' | 'ongoing' | 'completed'})}
+                placeholder="scheduled, ongoing, or completed"
+              />
 
-            <Text style={styles.inputLabel}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={newClass.description}
-              onChangeText={(text) => setNewClass({...newClass, description: text})}
-              placeholder="Class description"
-              multiline
-              numberOfLines={4}
-            />
+              <Text style={styles.inputLabel}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={newClass.description}
+                onChangeText={(text) => setNewClass({...newClass, description: text})}
+                placeholder="Class description"
+                multiline
+                numberOfLines={4}
+              />
 
-            <TouchableOpacity 
-              style={styles.saveButton}
-              onPress={handleSaveClass}
-            >
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity 
+                style={styles.saveButton}
+                onPress={handleSaveClass}
+              >
+                <Text style={styles.saveButtonText}>Add Class</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -655,6 +692,13 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 8,
     maxHeight: '80%',
+    flex: 1
+  },
+  formScrollContainer: {
+    
+    flexGrow: 1,
+    padding: 0,
+    backgroundColor: '#fff'
   },
   modalHeader: {
     flexDirection: 'row',
@@ -673,19 +717,24 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   formContainer: {
-    padding: 16,
+    padding: 20,
+    backgroundColor: '#fff',
   },
+  
   inputLabel: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 8,
     color: '#333',
   },
   input: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
     borderRadius: 8,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 20,
+    fontSize: 16,
   },
   textArea: {
     minHeight: 100,
@@ -693,14 +742,19 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: '#6200ee',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   saveButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 18,
   },
 });

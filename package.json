@@ -28,6 +28,7 @@
     "expo-dev-client": "~5.0.12",
     "expo-document-picker": "^13.0.3",
     "expo-firebase-recaptcha": "^2.3.1",
+    "expo-notifications": "^0.29.14",
     "expo-status-bar": "~2.0.1",
     "firebase": "^11.3.1",
     "react": "18.3.1",
@@ -49,6 +50,7 @@
     "@types/firebase": "^2.4.32",
     "@types/react": "~18.3.12",
     "@types/react-native-snap-carousel": "^3.8.11",
+    "expo-module-scripts": "^4.0.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
