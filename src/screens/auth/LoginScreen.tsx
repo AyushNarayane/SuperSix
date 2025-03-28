@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 
 export const LoginScreen = ({ navigation }: { navigation: any }) => {
@@ -32,6 +32,9 @@ export const LoginScreen = ({ navigation }: { navigation: any }) => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.logoContainer}>
+        <Image source={require('../../../assets/logo.svg')} style={styles.logo} />
+      </View>
       <Text style={styles.title}>Login</Text>
       
       <View style={styles.inputContainer}>
@@ -93,17 +96,28 @@ export const LoginScreen = ({ navigation }: { navigation: any }) => {
 };
 
 const styles = StyleSheet.create({
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 5,
+    marginTop: -40,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    resizeMode: 'contain',
+  },
   container: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    padding: 20,
+    paddingTop: 80,
+    paddingHorizontal: 15,
     backgroundColor: '#f5f5f5'
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20
+    marginBottom: 10
   },
   inputContainer: {
     width: '100%',
@@ -111,22 +125,22 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: '#fff',
-    padding: 15,
+    padding: 12,
     borderRadius: 5,
-    marginBottom: 10,
+    marginBottom: 8,
     width: '100%'
   },
   roleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10
+    marginBottom: 8
   },
   roleButton: {
     flex: 1,
-    padding: 10,
+    padding: 8,
     borderRadius: 5,
     backgroundColor: '#ddd',
-    marginHorizontal: 5,
+    marginHorizontal: 4,
     alignItems: 'center'
   },
   activeRole: {
@@ -140,7 +154,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#007AFF',
-    padding: 15,
+    padding: 12,
     borderRadius: 5,
     width: '100%',
     alignItems: 'center'
@@ -155,12 +169,12 @@ const styles = StyleSheet.create({
   },
   signupContainer: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 80,
     left: 0,
     right: 0,
     flexDirection: 'column',
     alignItems: 'center',
-    padding: 20
+    padding: 10
   },
   signupText: {
     fontSize: 16,
@@ -171,9 +185,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
     width: '100%',
     maxWidth: 300,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 15,
+    borderRadius: 8,
     alignItems: 'center'
   },
   signupButtonText: {
