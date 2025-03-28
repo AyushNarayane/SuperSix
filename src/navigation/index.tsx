@@ -69,6 +69,8 @@ const StudentDrawerNavigator = () => {
 };
 
 const AdminTabNavigator = () => {
+  const { logout } = useAuth();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -77,6 +79,14 @@ const AdminTabNavigator = () => {
         },
         headerTintColor: '#fff',
         tabBarActiveTintColor: '#6200ee',
+        headerRight: () => (
+          <TouchableOpacity 
+            onPress={logout}
+            style={{ marginRight: 15 }}
+          >
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Logout</Text>
+          </TouchableOpacity>
+        ),
       }}
     >
       <Tab.Screen name="Dashboard" component={AdminDashboard} />
