@@ -5,6 +5,7 @@ import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { useAuth } from '../../hooks/useAuth';
 import { db } from '../../config/firebase';
 import { LiveClass } from '../../types';
+import Carousel from 'react-native-reanimated-carousel';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -221,20 +222,16 @@ export const StudentHome = () => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.carouselContainer}>
-        <FlatList
+        <Carousel
+          loop
+          width={SCREEN_WIDTH}
+          height={220}
           data={banners}
           renderItem={renderBannerItem}
-          keyExtractor={(item) => item.id}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={(event) => {
-            const slideIndex = Math.floor(
-              Math.floor(event.nativeEvent.contentOffset.x) /
-                Math.floor(event.nativeEvent.layoutMeasurement.width)
-            );
-            setCurrentIndex(slideIndex);
-          }}
+          autoPlay={true}
+          autoPlayInterval={3000}
+          scrollAnimationDuration={1000}
+          onSnapToItem={(index) => setCurrentIndex(index)}
         />
         <View style={styles.paginationContainer}>
           {banners.map((_, index) => (
