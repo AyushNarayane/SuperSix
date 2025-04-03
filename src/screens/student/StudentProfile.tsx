@@ -43,6 +43,22 @@ const StudentProfile = () => {
         <Text style={styles.label}>Branch:</Text>
         <Text style={styles.value}>{user.branch || 'Not specified'}</Text>
       </View>
+      <View style={styles.infoItem}>
+        <Text style={styles.label}>District:</Text>
+        <Text style={styles.value}>{user.address?.district || 'Not specified'}</Text>
+      </View>
+      <View style={styles.infoItem}>
+        <Text style={styles.label}>Tehsil:</Text>
+        <Text style={styles.value}>{user.address?.tehsil || 'Not specified'}</Text>
+      </View>
+      <View style={styles.infoItem}>
+        <Text style={styles.label}>Village:</Text>
+        <Text style={styles.value}>{user.address?.village || 'Not specified'}</Text>
+      </View>
+      <View style={styles.infoItem}>
+        <Text style={styles.label}>Street:</Text>
+        <Text style={styles.value}>{user.address?.street || 'Not specified'}</Text>
+      </View>
     </View>
   );
 

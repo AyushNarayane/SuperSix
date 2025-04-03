@@ -6,7 +6,12 @@ export interface User {
   uid: string;
   phone: string;
   email?: string;
-  address?: string;
+  address?: {
+    district: string;
+    tehsil: string;
+    village: string;
+    street?: string;
+  };
   secondaryPhone?: string;
   coursesEnrolled: string[];
   payments: Payment[];

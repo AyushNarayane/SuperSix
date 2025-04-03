@@ -26,7 +26,7 @@ export const useAuth = () => {
     return unsubscribe;
   }, []);
 
-  const loginWithRole = async (email: string, password: string, role: UserRole, additionalData?: { name?: string; phone?: string; branch?: 'wardha' | 'nagpur' | 'butibori' }) => {
+  const loginWithRole = async (email: string, password: string, role: UserRole, additionalData?: { name?: string; phone?: string; branch?: 'wardha' | 'nagpur' | 'butibori'; address?: { district: string; tehsil: string; village: string; street?: string; } }) => {
     try {
       setError(null);
       setLoading(true);
@@ -66,6 +66,7 @@ export const useAuth = () => {
         email,
         phone: additionalData?.phone || '',
         branch: additionalData?.branch,
+        address: additionalData?.address,
         coursesEnrolled: [],
         payments: [],
         performance: []
