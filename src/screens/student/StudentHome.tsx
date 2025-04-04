@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions, Linking, Image, ActivityIndicator, FlatList, Modal, TextInput, Alert } from 'react-native';
+import { SvgXml } from 'react-native-svg';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { useAuth } from '../../hooks/useAuth';
@@ -26,6 +27,8 @@ interface Review {
   name: string;
   rating: number;
   text: string;
+  profilePic?: string;
+  timestamp: string;
 }
 
 interface SocialLink {
@@ -159,7 +162,8 @@ export const StudentHome = () => {
         name: user.name,
         rating,
         text: reviewText.trim(),
-        createdAt: new Date().toISOString()
+        profilePic: user.profile,
+        timestamp: new Date().toISOString()
       };
 
       const docRef = await addDoc(collection(db, 'reviews'), newReview);
@@ -193,9 +197,29 @@ export const StudentHome = () => {
 
   const renderReview = (item: Review) => (
     <View key={item.id} style={styles.reviewCard}>
-      <Text style={styles.reviewName}>{item.name}</Text>
-      <Text style={styles.reviewRating}>{'⭐'.repeat(item.rating)}</Text>
-      <Text style={styles.reviewText}>{item.text}</Text>
+      <View style={styles.reviewContent}>
+        <Text style={styles.reviewName}>{item.name}</Text>
+        <Text style={styles.reviewRating}>{'⭐'.repeat(item.rating)}</Text>
+        <Text style={styles.reviewText}>{item.text}</Text>
+      </View>
+      {item.profilePic ? (
+        <Image 
+          source={{ uri: item.profilePic }}
+          style={styles.reviewProfilePic} 
+          resizeMode="cover"
+        />
+      ) : (
+        <SvgXml
+          xml={`<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="60" cy="60" r="60" fill="#E0E0E0"/>
+            <circle cx="60" cy="45" r="20" fill="#BDBDBD"/>
+            <path d="M60 70C73.2548 70 84 80.7452 84 94V120H36V94C36 80.7452 46.7452 70 60 70Z" fill="#BDBDBD"/>
+          </svg>`}
+          width={50}
+          height={50}
+          style={styles.reviewProfilePic}
+        />
+      )}
     </View>
   );
 
@@ -584,6 +608,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  reviewContent: {
+    flex: 1,
+    marginRight: 10,
+  },
+  reviewProfilePic: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#f0f0f0',
   },
   reviewName: {
     fontSize: 16,

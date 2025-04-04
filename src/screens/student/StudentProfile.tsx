@@ -1,11 +1,89 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Image, Alert } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { uploadImage } from '../../config/cloudinary';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 import { User, Payment, TestResult } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
+import { SvgXml } from 'react-native-svg';
+import { auth } from '../../config/firebase';
 
 const StudentProfile = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('info');
+  const [uploading, setUploading] = useState(false);
+
+  const pickImage = async () => {
+    if (!user) {
+      Alert.alert('Error', 'User not found');
+      return;
+    }
+
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant permission to access your photos');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0].uri) {
+        setUploading(true);
+        try {
+          console.log('Starting image upload to Cloudinary...');
+          const imageUrl = await uploadImage(result.assets[0].uri);
+          console.log('Image uploaded successfully to Cloudinary:', imageUrl);
+          
+          const userRef = doc(db, 'users', auth.currentUser?.uid || '');
+          console.log('Attempting to update Firestore document:', auth.currentUser?.uid);
+          
+          try {
+            await updateDoc(userRef, {
+              profile: imageUrl
+            });
+            console.log('Firestore document updated successfully');
+          } catch (error) {
+            console.error('Firestore update error:', error);
+            if ((error as { code?: string }).code === 'permission-denied') {
+              console.error('Permission denied error:', error);
+              Alert.alert('Permission Error', 'You don\'t have permission to update your profile');
+              return;
+            } else if ((error as { code?: string }).code === 'resource-exhausted') {
+              console.error('Resource exhausted error:', error);
+              Alert.alert('Error', 'Too many requests. Please try again later.');
+              return;
+            } else if ((error as Error).toString().includes('ERR_BLOCKED_BY_CLIENT')) {
+              console.error('Client blocked error:', error);
+              Alert.alert('Error', 'Profile update blocked by browser. Please check your browser settings.');
+              return;
+            } else {
+              console.error('Unknown Firestore error:', error);
+              Alert.alert('Error', 'Profile picture uploaded but failed to save. Please try again.');
+              return;
+            }
+          }
+          Alert.alert('Success', 'Profile picture updated successfully');
+        } catch (error) {
+          console.error('Error in upload process:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to update profile picture';
+          Alert.alert('Error', errorMessage);
+        } finally {
+          setUploading(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to pick image';
+      Alert.alert('Error', errorMessage);
+    }
+  };
 
   if (loading) {
     return (
@@ -23,6 +101,33 @@ const StudentProfile = () => {
       </View>
     );
   }
+
+  const renderProfilePicture = () => (
+    <View style={styles.profilePictureContainer}>
+      <TouchableOpacity onPress={pickImage} disabled={uploading}>
+        {uploading ? (
+          <ActivityIndicator size="large" color="#ff6b6b" style={styles.profilePicture} />
+        ) : (
+          user.profile ? (
+            <Image
+              source={{ uri: user.profile }}
+              style={styles.profilePicture}
+            />
+          ) : (
+            <SvgXml
+              width={120}
+              height={120}
+              xml={require('../../../assets/default-avatar.svg')}
+              style={styles.profilePicture}
+            />
+          )
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity onPress={pickImage} style={styles.uploadButton} disabled={uploading}>
+        <Text style={styles.uploadButtonText}>{uploading ? 'Uploading...' : 'Change Photo'}</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   const renderBasicInfo = () => (
     <View style={styles.sectionContainer}>
@@ -138,6 +243,7 @@ const StudentProfile = () => {
 
   return (
     <View style={styles.container}>
+      {renderProfilePicture()}
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <TabButton title="Info" isActive={activeTab === 'info'} onPress={() => setActiveTab('info')} />
@@ -169,6 +275,44 @@ const TabButton: React.FC<TabButtonProps> = ({ title, isActive, onPress }) => (
 );
 
 const styles = StyleSheet.create({
+  profilePictureContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+    paddingTop: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fff',
+    paddingBottom: 20,
+  },
+  profilePicture: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#f0f0f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  uploadButton: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    backgroundColor: '#ff6b6b',
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  uploadButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',

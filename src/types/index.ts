@@ -6,6 +6,7 @@ export interface User {
   uid: string;
   phone: string;
   email?: string;
+  profile?: string;
   address?: {
     district: string;
     tehsil: string;
@@ -83,4 +84,13 @@ export interface ChatMessage {
   message: string;
   timestamp: string;
   type: 'text' | 'reminder';
+}
+
+export interface Review {
+  id: string;
+  name: string;
+  rating: number;
+  text: string;
+  profilePic?: string;
+  timestamp: string;
 }
