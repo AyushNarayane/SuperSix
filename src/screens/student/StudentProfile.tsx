@@ -1,18 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Image, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImage } from '../../config/cloudinary';
-import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { User, Payment, TestResult } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { SvgXml } from 'react-native-svg';
 import { auth } from '../../config/firebase';
 
+interface QuizResult {
+  quizId: string;
+  score: number;
+  submittedAt: any;
+  answers: number[];
+}
+
 const StudentProfile = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('info');
   const [uploading, setUploading] = useState(false);
+  const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
+  const [loadingResults, setLoadingResults] = useState(false);
+
+  useEffect(() => {
+    if (user?.uid) {
+      fetchQuizResults();
+    }
+  }, [user]);
+
+  const fetchQuizResults = async () => {
+    if (!user?.uid) return;
+    
+    setLoadingResults(true);
+    try {
+      const resultsRef = collection(db, 'quizResults');
+                                                 // First get results by userId only to avoid composite index requirement
+      const q = query(
+        resultsRef,
+        where('userId', '==', user.uid)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const results = querySnapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          return {
+            quizId: data.quizId || doc.id,
+            score: data.score || 0,
+            submittedAt: data.submittedAt,
+            answers: data.answers || [],
+          } as QuizResult;
+        })
+        // Sort results client-side by submittedAt in descending order
+        .sort((a, b) => {
+          const dateA = a.submittedAt?.toDate() || new Date(0);
+          const dateB = b.submittedAt?.toDate() || new Date(0);
+          return dateB.getTime() - dateA.getTime();
+        });
+      
+      setQuizResults(results);
+    } catch (error) {
+      console.error('Error fetching quiz results:', error);
+      Alert.alert('Error', 'Failed to load quiz results');
+    } finally {
+      setLoadingResults(false);
+    }
+  };
 
   const pickImage = async () => {
     if (!user) {
@@ -185,17 +239,42 @@ const StudentProfile = () => {
   const renderPerformance = () => (
     <View style={styles.sectionContainer}>
       <Text style={styles.sectionTitle}>Performance</Text>
-      {user.performance.length > 0 ? (
-        user.performance.map((result, index) => (
-          <View key={index} style={styles.performanceItem}>
-            <Text style={styles.testName}>{result.test}</Text>
-            <Text style={styles.score}>Score: {result.score}</Text>
-            <Text style={styles.date}>Date: {result.date}</Text>
-          </View>
-        ))
-      ) : (
-        <Text style={styles.emptyText}>No performance data available</Text>
-      )}
+      
+      <View style={styles.quizTabContainer}>
+        <Text style={[styles.tabTitle, styles.sectionSubtitle]}>Quiz Results</Text>
+        {loadingResults ? (
+          <ActivityIndicator size="small" color="#6200ee" />
+        ) : quizResults.length > 0 ? (
+          quizResults.map((result, index) => (
+            <View key={index} style={styles.quizResultItem}>
+              <View style={styles.quizResultHeader}>
+                <Text style={styles.quizScore}>Score: {result.score}/{result.answers.length}</Text>
+                <Text style={styles.quizDate}>
+                  {result.submittedAt?.toDate().toLocaleDateString() || 'Date not available'}
+                </Text>
+              </View>
+              <Text style={styles.quizId}>Quiz ID: {result.quizId}</Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyText}>No quiz results available</Text>
+        )}
+      </View>
+
+      <View style={styles.quizTabContainer}>
+        <Text style={[styles.tabTitle, styles.sectionSubtitle]}>Other Assessments</Text>
+        {user.performance && user.performance.length > 0 ? (
+          user.performance.map((result, index) => (
+            <View key={index} style={styles.performanceItem}>
+              <Text style={styles.testName}>{result.test}</Text>
+              <Text style={styles.score}>Score: {result.score}</Text>
+              <Text style={styles.date}>Date: {result.date}</Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyText}>No assessment data available</Text>
+        )}
+      </View>
     </View>
   );
 
@@ -244,7 +323,7 @@ const StudentProfile = () => {
   return (
     <View style={styles.container}>
       {renderProfilePicture()}
-      <View style={styles.tabContainer}>
+      <View style={styles.tabNavigationBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <TabButton title="Info" isActive={activeTab === 'info'} onPress={() => setActiveTab('info')} />
           <TabButton title="Courses" isActive={activeTab === 'courses'} onPress={() => setActiveTab('courses')} />
@@ -275,6 +354,55 @@ const TabButton: React.FC<TabButtonProps> = ({ title, isActive, onPress }) => (
 );
 
 const styles = StyleSheet.create({
+  tabNavigationBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  quizTabContainer: {
+    marginTop: 15,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+  },
+  tabTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#6200ee',
+  },
+  quizResultItem: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+  },
+  quizResultHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  quizScore: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6200ee',
+  },
+  quizDate: {
+    fontSize: 14,
+    color: '#666',
+  },
+  quizId: {
+    fontSize: 14,
+    color: '#888',
+  },
+  sectionSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#333',
+  },
   profilePictureContainer: {
     alignItems: 'center',
     marginVertical: 20,
@@ -317,12 +445,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  tabContainer: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: '#fff',
-  },
+  
   tab: {
     paddingHorizontal: 20,
     paddingVertical: 15,

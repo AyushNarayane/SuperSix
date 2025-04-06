@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+// Using platform-agnostic date time input
 import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../hooks/useAuth';
+import { QuizEditor } from '../../components/QuizEditor';
 
 interface Quiz {
   id: string;
   title: string;
   description: string;
-  googleFormUrl: string;
+  questions: Array<{
+    questionText: string;
+    options: string[];
+    correctOption: number;
+  }>;
   scheduledDate: any; // Firestore timestamp
   duration: number; // in minutes
   isActive: boolean;
@@ -25,9 +31,17 @@ export const AdminQuizzes = () => {
   const [isAddingQuiz, setIsAddingQuiz] = useState(false);
   
   // New quiz form state
+  const [newQuiz, setNewQuiz] = useState<Omit<Quiz, 'id' | 'createdAt' | 'createdBy'>>({  
+    title: '',
+    description: '',
+    questions: [],
+    scheduledDate: new Date(),
+    duration: 60,
+    isActive: true
+  });
   const [newQuizTitle, setNewQuizTitle] = useState('');
   const [newQuizDescription, setNewQuizDescription] = useState('');
-  const [newQuizGoogleFormUrl, setNewQuizGoogleFormUrl] = useState('');
+
   const [newQuizScheduledDate, setNewQuizScheduledDate] = useState(new Date());
   const [newQuizDuration, setNewQuizDuration] = useState('60'); // Default 60 minutes
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -70,10 +84,7 @@ export const AdminQuizzes = () => {
         return;
       }
 
-      if (!newQuizGoogleFormUrl.trim()) {
-        Alert.alert('Error', 'Please enter a Google Form URL');
-        return;
-      }
+
 
       // Validate date
       if (!newQuizScheduledDate) {
@@ -96,7 +107,7 @@ export const AdminQuizzes = () => {
       await addDoc(collection(db, 'quizzes'), {
         title: newQuizTitle.trim(),
         description: newQuizDescription.trim(),
-        googleFormUrl: newQuizGoogleFormUrl.trim(),
+        questions: newQuiz.questions,
         scheduledDate: scheduledDate,
         duration: duration,
         isActive: true,
@@ -107,7 +118,7 @@ export const AdminQuizzes = () => {
       // Reset form
       setNewQuizTitle('');
       setNewQuizDescription('');
-      setNewQuizGoogleFormUrl('');
+
       setNewQuizScheduledDate(new Date());
       setNewQuizDuration('60');
       setIsAddingQuiz(false);
@@ -193,7 +204,7 @@ export const AdminQuizzes = () => {
         <Text style={styles.quizDescription}>{item.description}</Text>
         
         <View style={styles.quizDetails}>
-          <Text style={styles.quizInfo}>Google Form: {item.googleFormUrl}</Text>
+          <Text style={styles.quizInfo}>Questions: {item.questions?.length || 0} questions</Text>
           <Text style={styles.quizInfo}>Scheduled: {formatDate(item.scheduledDate)}</Text>
           <Text style={styles.quizInfo}>Duration: {item.duration} minutes</Text>
         </View>
@@ -239,62 +250,29 @@ export const AdminQuizzes = () => {
           multiline
         />
         
-        <TextInput
-          style={styles.input}
-          placeholder="Google Form URL"
-          value={newQuizGoogleFormUrl}
-          onChangeText={setNewQuizGoogleFormUrl}
-          keyboardType="url"
-        />
+        <QuizEditor
+              questions={newQuiz.questions}
+              onQuestionsChange={(questions) => setNewQuiz({...newQuiz, questions})}
+            />
         
         <TouchableOpacity
           style={styles.input}
           onPress={() => setShowDatePicker(true)}
         >
           <Text style={styles.dateTimeText}>
-            {newQuizScheduledDate.toLocaleDateString()}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.input}
-          onPress={() => setShowTimePicker(true)}
-        >
-          <Text style={styles.dateTimeText}>
-            {newQuizScheduledDate.toLocaleTimeString()}
+            {newQuizScheduledDate.toLocaleString()}
           </Text>
         </TouchableOpacity>
 
         {showDatePicker && (
           <DateTimePicker
             value={newQuizScheduledDate}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            mode="datetime"
+            display="default"
             onChange={(event, selectedDate) => {
               setShowDatePicker(false);
               if (selectedDate) {
-                const newDate = new Date(selectedDate);
-                newDate.setHours(newQuizScheduledDate.getHours());
-                newDate.setMinutes(newQuizScheduledDate.getMinutes());
-                setNewQuizScheduledDate(newDate);
-              }
-            }}
-          />
-        )}
-
-        {showTimePicker && (
-          <DateTimePicker
-            value={newQuizScheduledDate}
-            mode="time"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event, selectedTime) => {
-              setShowTimePicker(false);
-              if (selectedTime) {
-                const newDate = new Date(selectedTime);
-                newDate.setFullYear(newQuizScheduledDate.getFullYear());
-                newDate.setMonth(newQuizScheduledDate.getMonth());
-                newDate.setDate(newQuizScheduledDate.getDate());
-                setNewQuizScheduledDate(newDate);
+                setNewQuizScheduledDate(selectedDate);
               }
             }}
           />
@@ -348,7 +326,7 @@ export const AdminQuizzes = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Quizzes</Text>
         <Text style={styles.headerSubtitle}>Manage student quizzes</Text>
@@ -376,7 +354,7 @@ export const AdminQuizzes = () => {
           <Text style={styles.emptySubtext}>Create your first quiz by clicking the button above</Text>
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 };
 

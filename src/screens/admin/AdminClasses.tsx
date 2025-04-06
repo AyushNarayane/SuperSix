@@ -347,7 +347,7 @@ export const AdminClasses = () => {
                 style={styles.input}
                 value={newClass.startTime}
                 onChangeText={(text) => setNewClass({...newClass, startTime: text})}
-                placeholder="YYYY-MM-DD HH:MM:SS"
+                placeholder="YYYY-MM-DD HH:mm"
               />
 
               <Text style={styles.inputLabel}>End Time</Text>
@@ -355,7 +355,7 @@ export const AdminClasses = () => {
                 style={styles.input}
                 value={newClass.endTime}
                 onChangeText={(text) => setNewClass({...newClass, endTime: text})}
-                placeholder="YYYY-MM-DD HH:MM:SS"
+                placeholder="YYYY-MM-DD HH:mm"
               />
 
               <Text style={styles.inputLabel}>Google Meet Link</Text>

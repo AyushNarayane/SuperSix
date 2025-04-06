@@ -8,6 +8,22 @@ import { LoginScreen } from '../screens/auth/LoginScreen';
 import { SignupScreen } from '../screens/auth/SignupScreen';
 import { TouchableOpacity, Text } from 'react-native';
 
+export type RootStackParamList = {
+  QuizTaking: {
+    quiz: {
+      id: string;
+      title: string;
+      questions: Array<{
+        questionText: string;
+        options: string[];
+        correctOption: number;
+      }>;
+      duration: number;
+    };
+    onComplete: () => void;
+  };
+};
+
 // Import all student screens
 import { StudentHome } from '../screens/student/StudentHome';
 import { StudentStore } from '../screens/student/StudentStore';
@@ -15,6 +31,7 @@ import { StudentChats } from '../screens/student/StudentChats';
 import StudentProfile from '../screens/student/StudentProfile';
 import StudentMaterials from '../screens/student/StudentMaterials';
 import { StudentQuiz } from '../screens/student/StudentQuiz';
+import { QuizTakingScreen } from '../screens/student/QuizTakingScreen';
 
 // Import admin screens
 import { AdminDashboard } from '../screens/admin/AdminDashboard';
@@ -64,6 +81,19 @@ const StudentDrawerNavigator = () => {
       <Drawer.Screen name="Materials" component={StudentMaterials} />
       <Drawer.Screen name="Quizzes" component={StudentQuiz} />
       <Drawer.Screen name="Profile" component={StudentProfile} />
+      <Drawer.Screen 
+        name="QuizTaking" 
+        component={QuizTakingScreen as React.ComponentType<any>}
+        initialParams={{
+          quiz: {
+            id: '',
+            title: '',
+            questions: [],
+            duration: 0
+          },
+          onComplete: () => {}
+        }}
+      />
     </Drawer.Navigator>
   );
 };

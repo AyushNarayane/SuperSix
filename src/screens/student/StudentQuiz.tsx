@@ -3,12 +3,19 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Linking, ActivityIn
 import { collection, query, getDocs, where, orderBy } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../hooks/useAuth';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation';
 
 interface Quiz {
   id: string;
   title: string;
   description: string;
-  googleFormUrl: string;
+  questions: Array<{
+    questionText: string;
+    options: string[];
+    correctOption: number;
+  }>;
   scheduledDate: any; // Firestore timestamp
   duration: number; // in minutes
   isActive: boolean;
@@ -90,12 +97,25 @@ export const StudentQuiz = () => {
       return;
     }
     
-    // Open the Google Form URL
-    Linking.openURL(quiz.googleFormUrl).catch(err => {
-      console.error('Error opening quiz URL:', err);
-      Alert.alert('Error', 'Could not open the quiz. Please try again.');
+    // Navigate to quiz taking screen
+    console.log('Passing quiz data to QuizTakingScreen:', {
+      id: quiz.id,
+      title: quiz.title,
+      questions: quiz.questions,
+      duration: quiz.duration
+    });
+    navigation.navigate('QuizTaking', { 
+      quiz: {
+        id: quiz.id,
+        title: quiz.title,
+        questions: quiz.questions,
+        duration: quiz.duration
+      },
+      onComplete: () => navigation.goBack()
     });
   };
+
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'No date set';
