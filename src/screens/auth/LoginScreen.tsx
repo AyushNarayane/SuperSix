@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image, KeyboardAvoidingView, ScrollView, SafeAreaView, Dimensions, Platform } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 
 export const LoginScreen = ({ navigation }: { navigation: any }) => {
@@ -31,150 +31,191 @@ export const LoginScreen = ({ navigation }: { navigation: any }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <Image source={require('../../../assets/logo.svg')} style={styles.logo} />
-      </View>
-      <Text style={styles.title}>Login</Text>
-      
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Enter Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <View style={styles.roleContainer}>
-          <TouchableOpacity 
-            style={[styles.roleButton, role === 'student' && styles.activeRole]}
-            onPress={() => setRole('student')}
-          >
-            <Text style={[styles.roleText, role === 'student' && styles.activeRoleText]}>Student</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.roleButton, role === 'admin' && styles.activeRole]}
-            onPress={() => setRole('admin')}
-          >
-            <Text style={[styles.roleText, role === 'admin' && styles.activeRoleText]}>Admin</Text>
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity 
-          style={styles.button} 
-          onPress={handleLogin}
-          disabled={loading}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Login</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {(error || authError) && <Text style={styles.error}>{error || authError}</Text>}
+          <View style={styles.logoContainer}>
+            <Image source={require('../../../assets/logo.png')} style={styles.logo} />
+          </View>
+          <Text style={styles.title}>Login</Text>
+          
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+            <View style={styles.roleContainer}>
+              <TouchableOpacity 
+                style={[styles.roleButton, role === 'student' && styles.activeRole]}
+                onPress={() => setRole('student')}
+              >
+                <Text style={[styles.roleText, role === 'student' && styles.activeRoleText]}>Student</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.roleButton, role === 'admin' && styles.activeRole]}
+                onPress={() => setRole('admin')}
+              >
+                <Text style={[styles.roleText, role === 'admin' && styles.activeRoleText]}>Admin</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity 
+              style={styles.button} 
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Login</Text>
+              )}
+            </TouchableOpacity>
+          </View>
       
-      <View style={styles.signupContainer}>
-        <Text style={styles.signupText}>New student?</Text>
-        <TouchableOpacity 
-          style={styles.signupButton}
-          onPress={() => navigation.navigate('Signup')}
-        >
-          <Text style={styles.signupButtonText}>Sign Up</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          {(error || authError) && <Text style={styles.error}>{error || authError}</Text>}
+          
+          <View style={styles.signupContainer}>
+            <Text style={styles.signupText}>New student?</Text>
+            <TouchableOpacity 
+              style={styles.signupButton}
+              onPress={() => navigation.navigate('Signup')}
+            >
+              <Text style={styles.signupButtonText}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+
+
   logoContainer: {
     alignItems: 'center',
     marginBottom: 5,
-    marginTop: -40,
+    marginTop: 5,
+    paddingVertical: 5,
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 150,
+    height: 150,
     resizeMode: 'contain',
   },
   container: {
     flex: 1,
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingTop: 80,
-    paddingHorizontal: 15,
-    backgroundColor: '#f5f5f5'
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    backgroundColor: '#f5f5f5',
   },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: 10
+    marginBottom: 30,
+    color: '#333',
   },
   inputContainer: {
     width: '100%',
-    maxWidth: 300
+    maxWidth: 350,
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   input: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 5,
-    marginBottom: 8,
-    width: '100%'
+    backgroundColor: '#f8f8f8',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 12,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   roleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8
+    marginBottom: 15,
+    marginTop: 5,
   },
   roleButton: {
     flex: 1,
-    padding: 8,
-    borderRadius: 5,
-    backgroundColor: '#ddd',
-    marginHorizontal: 4,
-    alignItems: 'center'
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    marginHorizontal: 5,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   activeRole: {
-    backgroundColor: '#007AFF'
+    backgroundColor: '#007AFF',
+    borderColor: '#0056b3',
   },
   roleText: {
-    color: '#000'
+    color: '#666',
+    fontWeight: '600',
   },
   activeRoleText: {
-    color: '#fff'
+    color: '#fff',
   },
   button: {
     backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 5,
+    padding: 15,
+    borderRadius: 8,
     width: '100%',
-    alignItems: 'center'
+    alignItems: 'center',
+    marginTop: 10,
   },
   buttonText: {
     color: '#fff',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   error: {
-    color: 'red',
-    marginTop: 10
+    color: '#ff3b30',
+    marginTop: 15,
+    textAlign: 'center',
   },
   signupContainer: {
-    position: 'absolute',
-    bottom: 80,
-    left: 0,
-    right: 0,
     flexDirection: 'column',
     alignItems: 'center',
-    padding: 10
+    padding: 20,
+    marginTop: 30,
+    marginBottom: 20,
+    width: '100%',
   },
   signupText: {
     fontSize: 16,

@@ -145,7 +145,7 @@ export const SignupScreen = ({ navigation }: { navigation: any }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [branch, setBranch] = useState<'wardha' | 'nagpur' | 'butibori' | ''>('');
+  const [branch, setBranch] = useState<'wardha' | 'nagpur' | 'butibori' | 'akola' | ''>('');
   const [district, setDistrict] = useState('');
   const [tehsil, setTehsil] = useState('');
   const [village, setVillage] = useState('');
@@ -364,6 +364,12 @@ export const SignupScreen = ({ navigation }: { navigation: any }) => {
                 onPress={() => setBranch('butibori')}
               >
                 <Text style={[styles.branchText, branch === 'butibori' && styles.activeBranchText]}>Butibori</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.branchButton, branch === 'akola' && styles.activeBranch]}
+                onPress={() => setBranch('akola')}
+              >
+                <Text style={[styles.branchText, branch === 'akola' && styles.activeBranchText]}>Akola</Text>
               </TouchableOpacity>
             </View>
 

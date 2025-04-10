@@ -1,7 +1,7 @@
 import { db } from '../config/firebase';
 import { doc, getDoc, setDoc, runTransaction } from 'firebase/firestore';
 
-type Branch = 'wardha' | 'nagpur' | 'butibori';
+export type Branch = 'wardha' | 'nagpur' | 'butibori' | 'akola';
 
 interface BranchCounter {
   count: number;
@@ -15,6 +15,8 @@ const getBranchCode = (branch: Branch): string => {
       return 'WR';
     case 'butibori':
       return 'BR';
+    case 'akola':
+      return 'AK';
     default:
       throw new Error('Invalid branch');
   }
