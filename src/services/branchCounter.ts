@@ -7,16 +7,16 @@ interface BranchCounter {
   count: number;
 }
 
-const getBranchCode = (branch: Branch): string => {
+const getBranchPrefix = (branch: Branch): string => {
   switch (branch) {
     case 'nagpur':
-      return 'NG';
+      return 'NGP1111111';
     case 'wardha':
-      return 'WR';
+      return 'WR1211111';
     case 'butibori':
-      return 'BR';
+      return 'BUT1311111';
     case 'akola':
-      return 'AK';
+      return 'AK1411111';
     default:
       throw new Error('Invalid branch');
   }
@@ -37,9 +37,9 @@ export const generateStudentId = async (branch: Branch): Promise<string> => {
 
       transaction.set(branchCounterRef, { count: currentCount });
 
-      // Format: BR0001, NG0001, WR0001
-      const branchCode = getBranchCode(branch);
-      return `${branchCode}${currentCount.toString().padStart(4, '0')}`;
+      // Format: NGP1111111, BUT1311111, WR1211111, AK4444444 + sequential number
+      const branchPrefix = getBranchPrefix(branch);
+      return `${branchPrefix.slice(0, -1)}${currentCount}`;
     });
 
     return newId;

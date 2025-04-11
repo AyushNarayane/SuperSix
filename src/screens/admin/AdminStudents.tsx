@@ -12,7 +12,7 @@ export const AdminStudents = () => {
   const [students, setStudents] = useState<StudentWithId[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<StudentWithId[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBranch, setSelectedBranch] = useState<'all' | 'wardha' | 'nagpur' | 'butibori'>('all');
+  const [selectedBranch, setSelectedBranch] = useState<'all' | 'wardha' | 'nagpur' | 'butibori' | 'akola'>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithId | null>(null);
@@ -185,7 +185,7 @@ export const AdminStudents = () => {
           <Text style={styles.detailsItem}>Email: {selectedStudent.email || 'No email'}</Text>
           <Text style={styles.detailsItem}>Phone: {selectedStudent.phone || 'No phone'}</Text>
           <Text style={styles.detailsItem}>Branch: {selectedStudent.branch || 'Not specified'}</Text>
-          <Text style={styles.detailsItem}>Address: {selectedStudent.address || 'No address'}</Text>
+          <Text style={styles.detailsItem}>Address: {selectedStudent.address ? `${selectedStudent.address.district}, ${selectedStudent.address.tehsil}, ${selectedStudent.address.village}${selectedStudent.address.street ? `, ${selectedStudent.address.street}` : ''}` : 'No address'}</Text>
           <Text style={styles.detailsItem}>Secondary Phone: {selectedStudent.secondaryPhone || 'None'}</Text>
           
           <Text style={styles.sectionTitle}>Enrolled Courses</Text>
@@ -304,6 +304,12 @@ export const AdminStudents = () => {
                   onPress={() => setSelectedBranch('butibori')}
                 >
                   <Text style={[styles.branchButtonText, selectedBranch === 'butibori' && styles.activeBranchText]}>Butibori</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.branchButton, selectedBranch === 'akola' && styles.activeBranchButton]}
+                  onPress={() => setSelectedBranch('akola')}
+                >
+                  <Text style={[styles.branchButtonText, selectedBranch === 'akola' && styles.activeBranchText]}>Akola</Text>
                 </TouchableOpacity>
               </View>
             </View>
