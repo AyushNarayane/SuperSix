@@ -40,6 +40,7 @@ import { AdminClasses } from '../screens/admin/AdminClasses';
 import { AdminChats } from '../screens/admin/AdminChats';
 import AdminMaterials from '../screens/admin/AdminMaterials';
 import { AdminQuizzes } from '../screens/admin/AdminQuizzes';
+import { AttendanceManagement } from '../screens/admin/AttendanceManagement';
 
 // Admin Payments screen (to be implemented)
 const AdminPayments = () => null;
@@ -126,6 +127,7 @@ const AdminTabNavigator = () => {
       <Tab.Screen name="Materials" component={AdminMaterials} />
       <Tab.Screen name="Quizzes" component={AdminQuizzes} />
       <Tab.Screen name="Payments" component={AdminPayments} />
+      <Tab.Screen name="Attendance" component={AttendanceManagement} />
     </Tab.Navigator>
   );
 };

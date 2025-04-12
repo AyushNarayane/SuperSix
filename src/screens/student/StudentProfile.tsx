@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImage } from '../../config/cloudinary';
 import { doc, updateDoc, setDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { QRCodeGenerator } from '../../components/QRCodeGenerator';
 import { db } from '../../config/firebase';
 import { User, Payment, TestResult } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
@@ -183,6 +184,18 @@ const StudentProfile = () => {
     </View>
   );
 
+  const renderAttendanceQR = () => (
+    <View style={styles.sectionContainer}>
+      <Text style={styles.sectionTitle}>Attendance QR Code</Text>
+      <View style={styles.qrContainer}>
+        <QRCodeGenerator value={user.uid} />
+        <Text style={styles.qrInstructions}>
+          Show this QR code to mark your attendance
+        </Text>
+      </View>
+    </View>
+  );
+
   const renderBasicInfo = () => (
     <View style={styles.sectionContainer}>
       <Text style={styles.sectionTitle}>Basic Information</Text>
@@ -323,6 +336,7 @@ const StudentProfile = () => {
   return (
     <View style={styles.container}>
       {renderProfilePicture()}
+      {renderAttendanceQR()}
       <View style={styles.tabNavigationBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <TabButton title="Info" isActive={activeTab === 'info'} onPress={() => setActiveTab('info')} />
@@ -434,6 +448,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
+  },
+  qrContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  qrInstructions: {
+    marginTop: 16,
+    color: '#666',
+    textAlign: 'center',
   },
   uploadButtonText: {
     color: '#fff',
