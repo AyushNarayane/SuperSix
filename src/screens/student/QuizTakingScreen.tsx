@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, Image } from 'react-native';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../hooks/useAuth';
@@ -9,7 +9,9 @@ import type { RootStackParamList } from '../../navigation';
 
 interface QuizQuestion {
   questionText: string;
+  questionImage?: string;
   options: string[];
+  optionImages?: string[];
   correctOption: number;
 }
 
@@ -114,6 +116,13 @@ export const QuizTakingScreen = () => {
       {safeQuiz.questions.map((question, qIndex) => (
         <View key={qIndex} style={styles.questionContainer}>
           <Text style={styles.questionText}>Q{qIndex + 1}: {question.questionText}</Text>
+          {question.questionImage && (
+            <Image
+              source={{ uri: question.questionImage }}
+              style={styles.questionImage}
+              resizeMode="contain"
+            />
+          )}
           
           {question.options.map((option, oIndex) => (
             <TouchableOpacity
@@ -124,6 +133,13 @@ export const QuizTakingScreen = () => {
               ]}
               onPress={() => handleAnswerSelect(qIndex, oIndex)}
             >
+              {question.optionImages?.[oIndex] && (
+                <Image
+                  source={{ uri: question.optionImages[oIndex] }}
+                  style={styles.optionImage}
+                  resizeMode="contain"
+                />
+              )}
               <Text style={styles.optionText}>{option}</Text>
             </TouchableOpacity>
           ))}
@@ -166,17 +182,26 @@ const styles = StyleSheet.create({
   optionButton: {
     backgroundColor: '#fff',
     padding: 15,
+    paddingVertical: 12,
     borderRadius: 8,
     marginVertical: 5,
     borderWidth: 1,
     borderColor: '#ddd',
-  },
+    },
+    optionImage: {
+      width: '100%',
+      height: undefined,
+      marginBottom: 12,
+      borderRadius: 4,
+      aspectRatio: 16/9,
+    },
+    optionText: {
+      fontSize: 16,
+      marginTop: 8,
+    },
   selectedOption: {
     borderColor: '#6200ee',
     backgroundColor: '#f3e5f5',
-  },
-  optionText: {
-    fontSize: 16,
   },
   submitButton: {
     backgroundColor: '#6200ee',
@@ -196,4 +221,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 10,
   },
+  questionImage: {
+    width: '100%',
+    height: 200,
+    marginVertical: 10,
+    borderRadius: 8,
+  },
+  
 });

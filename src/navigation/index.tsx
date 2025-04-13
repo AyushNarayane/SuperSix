@@ -15,7 +15,9 @@ export type RootStackParamList = {
       title: string;
       questions: Array<{
         questionText: string;
+        questionImage?: string;
         options: string[];
+        optionImages?: string[];
         correctOption: number;
       }>;
       duration: number;

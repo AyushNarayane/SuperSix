@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
+import { uploadQuizImage } from '../config/quizCloudinary';
+import * as ImagePicker from 'expo-image-picker';
 
 type Question = {
   questionText: string;
   options: string[];
   correctOption: number;
+  questionImage?: string;
 };
 
 interface Props {
@@ -13,7 +16,50 @@ interface Props {
 }
 
 export const QuizEditor = ({ questions, onQuestionsChange }: Props) => {
-  const addQuestion = () => {
+  const handleImagePicker = async (useCamera: boolean) => {
+    try {
+      const { status } = useCamera 
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Please enable camera/library access');
+        return null;
+      }
+
+      const result = await (useCamera
+        ? ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.7,
+          })
+        : ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.7,
+          }));
+
+      return result.canceled ? null : result.assets[0].uri;
+    } catch (error) {
+      console.error('Image pick error:', error);
+      return null;
+    }
+  };
+
+const uploadAndUpdateImage = async (imageUri: string, qIndex: number, oIndex?: number) => {
+    const imageUrl = await uploadQuizImage(imageUri);
+    const newQuestions = [...questions];
+    if (typeof oIndex === 'number') {
+      newQuestions[qIndex].options[oIndex] = imageUrl;
+    } else {
+      newQuestions[qIndex].questionImage = imageUrl;
+    }
+    onQuestionsChange(newQuestions);
+  };
+
+const addQuestion = () => {
     const newQuestions = [...questions, {
       questionText: '',
       options: ['', ''],
@@ -53,6 +99,33 @@ export const QuizEditor = ({ questions, onQuestionsChange }: Props) => {
         <View key={qIndex} style={styles.questionCard}>
           <View style={styles.questionHeader}>
             <Text style={styles.questionNumber}>Question {qIndex + 1}</Text>
+            <View style={styles.imageUploadContainer}>
+              <TouchableOpacity
+                style={styles.uploadButton}
+                onPress={async () => {
+                  const uri = await handleImagePicker(false);
+                  if (uri) uploadAndUpdateImage(uri, qIndex);
+                }}
+              >
+                <Text style={styles.buttonText}>Add Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cameraButton}
+                onPress={async () => {
+                  const uri = await handleImagePicker(true);
+                  if (uri) uploadAndUpdateImage(uri, qIndex);
+                }}
+              >
+                <Text style={styles.buttonText}>Take Photo</Text>
+              </TouchableOpacity>
+            </View>
+            {question.questionImage && (
+              <Image
+                source={{ uri: question.questionImage }}
+                style={styles.questionImage}
+                resizeMode="contain"
+              />
+            )}
             <TouchableOpacity onPress={() => {
               const newQuestions = questions.filter((_, i) => i !== qIndex);
               onQuestionsChange(newQuestions);
@@ -78,18 +151,38 @@ export const QuizEditor = ({ questions, onQuestionsChange }: Props) => {
                   {question.correctOption === oIndex ? '●' : '○'}
                 </Text>
               </TouchableOpacity>
-              <TextInput
-                style={[styles.input, styles.optionInput]}
-                placeholder={`Option ${oIndex + 1}`}
-                value={option}
-                onChangeText={(text) => {
-                  const newOptions = [...question.options];
-                  newOptions[oIndex] = text;
-                  const newQuestions = [...questions];
-                  newQuestions[qIndex] = {...newQuestions[qIndex], options: newOptions};
-                  onQuestionsChange(newQuestions);
-                }}
-              />
+              <View style={styles.optionRow}>
+                <View style={styles.optionInputContainer}>
+                  <TextInput
+                    style={[styles.input, styles.optionInput]}
+                    placeholder={`Option ${oIndex + 1}`}
+                    value={option}
+                    onChangeText={(text) => {
+                      const newOptions = [...question.options];
+                      newOptions[oIndex] = text;
+                      const newQuestions = [...questions];
+                      newQuestions[qIndex] = {...newQuestions[qIndex], options: newOptions};
+                      onQuestionsChange(newQuestions);
+                    }}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.optionImageButton}
+                  onPress={async () => {
+                    const uri = await handleImagePicker(false);
+                    if (uri) uploadAndUpdateImage(uri, qIndex, oIndex);
+                  }}
+                >
+                  <Text style={styles.buttonText}>📷</Text>
+                </TouchableOpacity>
+              </View>
+              {question.options[oIndex]?.startsWith('http') && (
+                <Image
+                  source={{ uri: question.options[oIndex] }}
+                  style={styles.optionImage}
+                  resizeMode="contain"
+                />
+              )}
               {question.options.length > 2 && (
                 <TouchableOpacity onPress={() => removeOption(qIndex, oIndex)}>
                   <Text style={styles.iconText}>−</Text>
@@ -117,6 +210,34 @@ export const QuizEditor = ({ questions, onQuestionsChange }: Props) => {
 const styles = StyleSheet.create({
   container: {
     marginVertical: 10,
+  },
+  imageUploadContainer: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  uploadButton: {
+    backgroundColor: '#6200ee',
+    padding: 8,
+    borderRadius: 4,
+  },
+  cameraButton: {
+    backgroundColor: '#6200ee',
+    padding: 8,
+    borderRadius: 4,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 14,
+  },
+  questionImage: {
+    width: 100,
+    height: 100,
+    marginVertical: 10,
+  },
+  optionImage: {
+    width: 50,
+    height: 50,
+    marginLeft: 10,
   },
   questionCard: {
     backgroundColor: '#fff',
@@ -154,6 +275,13 @@ const styles = StyleSheet.create({
   optionInput: {
     flex: 1,
     marginRight: 10,
+  },
+  optionInputContainer: {
+    flex: 1,
+  },
+  optionImageButton: {
+    padding: 8,
+    borderRadius: 4,
   },
   addOptionButton: {
     backgroundColor: '#f3e5f5',

@@ -13,7 +13,9 @@ interface Quiz {
   description: string;
   questions: Array<{
     questionText: string;
+    questionImage?: string;
     options: string[];
+    optionImages?: string[];
     correctOption: number;
   }>;
   scheduledDate: any; // Firestore timestamp
