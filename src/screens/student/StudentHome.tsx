@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Linking, Image, ActivityIndicator, FlatList, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Linking, Image, ActivityIndicator, FlatList, Modal, TextInput, Alert, TouchableOpacity } from 'react-native';
 import { SvgXml } from 'react-native-svg';
-import { TouchableOpacity } from 'react-native-gesture-handler';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { useAuth } from '../../hooks/useAuth';
 import { db } from '../../config/firebase';
@@ -327,7 +326,7 @@ export const StudentHome = () => {
           animationType="slide"
           onRequestClose={() => setIsReviewModalVisible(false)}
         >
-          <View style={styles.modalContainer}>
+          <View style={styles.modalContainer} pointerEvents="box-none">
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Add Your Review</Text>
               {renderStars()}
