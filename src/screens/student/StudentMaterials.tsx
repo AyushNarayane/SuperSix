@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Linking, Platform } from 'react-native';
 import { db } from '../../config/firebase';
 import { collection, query, orderBy, where, onSnapshot } from 'firebase/firestore';
 import { StudyMaterial } from '../../types';
+import { Ionicons } from '@expo/vector-icons';
 
 const StudentMaterials = () => {
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const [courses, setCourses] = useState<string[]>([]);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
     // Subscribe to study materials collection
@@ -46,11 +48,39 @@ const StudentMaterials = () => {
         return;
       }
 
+      setDownloading(material.id);
+      
       // Open the PDF URL in the device's browser or PDF viewer
-      await Linking.openURL(material.fileUrl);
+      const supported = await Linking.canOpenURL(material.fileUrl);
+      
+      if (supported) {
+        await Linking.openURL(material.fileUrl);
+      } else {
+        Alert.alert('Error', 'Cannot open this file type on your device');
+      }
     } catch (error) {
       console.error('Error opening PDF:', error);
       Alert.alert('Error', 'Failed to open the document');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const getFileTypeIcon = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'pdf':
+        return 'document-text';
+      case 'doc':
+      case 'docx':
+        return 'document';
+      case 'ppt':
+      case 'pptx':
+        return 'easel';
+      case 'xls':
+      case 'xlsx':
+        return 'grid';
+      default:
+        return 'document';
     }
   };
 
@@ -79,17 +109,33 @@ const StudentMaterials = () => {
   const renderItem = ({ item }: { item: StudyMaterial }) => (
     <View style={styles.materialItem}>
       <View style={styles.materialInfo}>
-        <Text style={styles.materialTitle}>{item.title}</Text>
+        <View style={styles.titleContainer}>
+          <Ionicons 
+            name={getFileTypeIcon(item.type)} 
+            size={24} 
+            color="#0066cc" 
+            style={styles.fileIcon}
+          />
+          <Text style={styles.materialTitle}>{item.title}</Text>
+        </View>
         <Text style={styles.materialDetails}>Course: {item.courseId}</Text>
         <Text style={styles.materialDetails}>
           Uploaded: {new Date(item.uploadDate).toLocaleDateString()}
         </Text>
       </View>
       <TouchableOpacity 
-        style={styles.downloadButton}
+        style={[styles.downloadButton, downloading === item.id && styles.downloadingButton]}
         onPress={() => handleDownload(item)}
+        disabled={downloading === item.id}
       >
-        <Text style={styles.downloadButtonText}>Download</Text>
+        {downloading === item.id ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <>
+            <Ionicons name="download-outline" size={20} color="#fff" style={styles.downloadIcon} />
+            <Text style={styles.downloadButtonText}>Download</Text>
+          </>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -175,12 +221,21 @@ const styles = StyleSheet.create({
   },
   materialInfo: {
     flex: 1,
+    marginRight: 12,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  fileIcon: {
+    marginRight: 8,
   },
   materialTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 4,
     color: '#333',
+    flex: 1,
   },
   materialDetails: {
     fontSize: 14,
@@ -190,8 +245,18 @@ const styles = StyleSheet.create({
   downloadButton: {
     backgroundColor: '#0066cc',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minWidth: 100,
+    justifyContent: 'center',
+  },
+  downloadingButton: {
+    backgroundColor: '#004c99',
+  },
+  downloadIcon: {
+    marginRight: 4,
   },
   downloadButtonText: {
     color: '#fff',

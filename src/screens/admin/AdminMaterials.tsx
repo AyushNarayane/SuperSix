@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput, Button } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { uploadPDF } from '../../config/cloudinary';
-import { db } from '../../config/firebase';
+import { db, storage } from '../../config/firebase';
 import { collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { StudyMaterial } from '../../types';
 
 const AdminMaterials = () => {
@@ -72,11 +72,15 @@ const AdminMaterials = () => {
       setModalVisible(false);
       setLoading(true);
       
-      // Upload file to Cloudinary
-      const fileUrl = await uploadPDF(selectedFile);
+      // Upload file to Firebase Storage
+      const storageRef = ref(storage, `study_materials/${Date.now()}_${selectedFile.name}`);
+      const response = await fetch(selectedFile.uri);
+      const blob = await response.blob();
+      const snapshot = await uploadBytes(storageRef, blob);
+      const fileUrl = await getDownloadURL(snapshot.ref);
       
       if (!fileUrl) {
-        throw new Error('Failed to get file URL from Cloudinary');
+        throw new Error('Failed to get file URL from Firebase Storage');
       }
       
       // Save metadata to Firestore
