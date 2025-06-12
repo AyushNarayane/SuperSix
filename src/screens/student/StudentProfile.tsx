@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Image, Alert, Linking } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { uploadImage } from '../../config/cloudinary';
 import { doc, updateDoc, setDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { QRCodeGenerator } from '../../components/QRCodeGenerator';
-import { db } from '../../config/firebase';
+import { db, storage } from '../../config/firebase';
 import { User, Payment, TestResult } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { SvgXml } from 'react-native-svg';
@@ -76,67 +76,126 @@ const StudentProfile = () => {
     }
 
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please grant permission to access your photos');
+      // Request permissions first
+      const { status: mediaLibraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (mediaLibraryStatus !== 'granted' && cameraStatus !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please grant permission to access your photos and camera to update your profile picture.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() }
+          ]
+        );
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0].uri) {
-        setUploading(true);
-        try {
-          console.log('Starting image upload to Cloudinary...');
-          const imageUrl = await uploadImage(result.assets[0].uri);
-          console.log('Image uploaded successfully to Cloudinary:', imageUrl);
-          
-          const userRef = doc(db, 'users', auth.currentUser?.uid || '');
-          console.log('Attempting to update Firestore document:', auth.currentUser?.uid);
-          
-          try {
-            await updateDoc(userRef, {
-              profile: imageUrl
-            });
-            console.log('Firestore document updated successfully');
-          } catch (error) {
-            console.error('Firestore update error:', error);
-            if ((error as { code?: string }).code === 'permission-denied') {
-              console.error('Permission denied error:', error);
-              Alert.alert('Permission Error', 'You don\'t have permission to update your profile');
-              return;
-            } else if ((error as { code?: string }).code === 'resource-exhausted') {
-              console.error('Resource exhausted error:', error);
-              Alert.alert('Error', 'Too many requests. Please try again later.');
-              return;
-            } else if ((error as Error).toString().includes('ERR_BLOCKED_BY_CLIENT')) {
-              console.error('Client blocked error:', error);
-              Alert.alert('Error', 'Profile update blocked by browser. Please check your browser settings.');
-              return;
-            } else {
-              console.error('Unknown Firestore error:', error);
-              Alert.alert('Error', 'Profile picture uploaded but failed to save. Please try again.');
-              return;
+      // Show options to user
+      Alert.alert(
+        'Choose Image Source',
+        'Select where you want to pick the image from',
+        [
+          {
+            text: 'Camera',
+            onPress: async () => {
+              try {
+                const result = await ImagePicker.launchCameraAsync({
+                  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                  allowsEditing: true,
+                  aspect: [1, 1],
+                  quality: 0.8,
+                });
+                if (!result.canceled && result.assets[0].uri) {
+                  await handleImageUpload(result.assets[0].uri);
+                }
+              } catch (error) {
+                console.error('Camera error:', error);
+                Alert.alert('Error', 'Failed to access camera. Please try again.');
+              }
             }
+          },
+          {
+            text: 'Photo Library',
+            onPress: async () => {
+              try {
+                const result = await ImagePicker.launchImageLibraryAsync({
+                  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                  allowsEditing: true,
+                  aspect: [1, 1],
+                  quality: 0.8,
+                });
+                if (!result.canceled && result.assets[0].uri) {
+                  await handleImageUpload(result.assets[0].uri);
+                }
+              } catch (error) {
+                console.error('Photo library error:', error);
+                Alert.alert('Error', 'Failed to access photo library. Please try again.');
+              }
+            }
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
           }
-          Alert.alert('Success', 'Profile picture updated successfully');
-        } catch (error) {
-          console.error('Error in upload process:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Failed to update profile picture';
-          Alert.alert('Error', errorMessage);
-        } finally {
-          setUploading(false);
+        ]
+      );
+    } catch (error) {
+      console.error('Error in pickImage:', error);
+      Alert.alert('Error', 'Failed to start image picker. Please try again.');
+    }
+  };
+
+  const handleImageUpload = async (imageUri: string) => {
+    if (!auth.currentUser?.uid) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      console.log('Starting image upload to Firebase Storage...');
+      
+      // Create a reference to the file location in Firebase Storage
+      const storageRef = ref(storage, `profile_pictures/${auth.currentUser.uid}`);
+      
+      // Fetch the image and convert to blob
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      
+      // Upload the blob to Firebase Storage
+      const snapshot = await uploadBytes(storageRef, blob);
+      console.log('Image uploaded successfully to Firebase Storage');
+      
+      // Get the download URL
+      const imageUrl = await getDownloadURL(snapshot.ref);
+      console.log('Got download URL:', imageUrl);
+      
+      const userRef = doc(db, 'users', auth.currentUser.uid);
+      console.log('Attempting to update Firestore document:', auth.currentUser.uid);
+      
+      await updateDoc(userRef, {
+        profile: imageUrl
+      });
+      
+      console.log('Firestore document updated successfully');
+      Alert.alert('Success', 'Profile picture updated successfully');
+    } catch (error) {
+      console.error('Error in upload process:', error);
+      let errorMessage = 'Failed to update profile picture';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('permission-denied')) {
+          errorMessage = 'You don\'t have permission to update your profile';
+        } else if (error.message.includes('resource-exhausted')) {
+          errorMessage = 'Too many requests. Please try again later.';
         }
       }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to pick image';
+      
       Alert.alert('Error', errorMessage);
+    } finally {
+      setUploading(false);
     }
   };
 
