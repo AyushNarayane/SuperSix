@@ -318,6 +318,8 @@ const StudentProfile = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'attendance':
+        return renderAttendanceQR();
       case 'info':
         return renderBasicInfo();
       case 'courses':
@@ -329,16 +331,16 @@ const StudentProfile = () => {
       case 'assignments':
         return renderAssignments();
       default:
-        return renderBasicInfo();
+        return renderAttendanceQR();
     }
   };
 
   return (
     <View style={styles.container}>
       {renderProfilePicture()}
-      {renderAttendanceQR()}
       <View style={styles.tabNavigationBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TabButton title="Attendance" isActive={activeTab === 'attendance'} onPress={() => setActiveTab('attendance')} />
           <TabButton title="Info" isActive={activeTab === 'info'} onPress={() => setActiveTab('info')} />
           <TabButton title="Courses" isActive={activeTab === 'courses'} onPress={() => setActiveTab('courses')} />
           <TabButton title="Performance" isActive={activeTab === 'performance'} onPress={() => setActiveTab('performance')} />
