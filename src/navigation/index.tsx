@@ -34,6 +34,7 @@ import StudentProfile from '../screens/student/StudentProfile';
 import StudentMaterials from '../screens/student/StudentMaterials';
 import { StudentQuiz } from '../screens/student/StudentQuiz';
 import { QuizTakingScreen } from '../screens/student/QuizTakingScreen';
+import { StudentVideos } from '../screens/student/StudentVideos';
 
 // Import admin screens
 import { AdminDashboard } from '../screens/admin/AdminDashboard';
@@ -43,6 +44,7 @@ import { AdminChats } from '../screens/admin/AdminChats';
 import AdminMaterials from '../screens/admin/AdminMaterials';
 import { AdminQuizzes } from '../screens/admin/AdminQuizzes';
 import { AttendanceManagement } from '../screens/admin/AttendanceManagement';
+import { AdminVideos } from '../screens/admin/AdminVideos';
 
 // Admin Payments screen (to be implemented)
 const AdminPayments = () => null;
@@ -83,6 +85,7 @@ const StudentDrawerNavigator = () => {
       <Drawer.Screen name="Chats" component={StudentChats} />
       <Drawer.Screen name="Materials" component={StudentMaterials} />
       <Drawer.Screen name="Quizzes" component={StudentQuiz} />
+      <Drawer.Screen name="Videos" component={StudentVideos} />
       <Drawer.Screen name="Profile" component={StudentProfile} />
       <Drawer.Screen 
         name="QuizTaking" 
@@ -128,6 +131,7 @@ const AdminTabNavigator = () => {
       <Tab.Screen name="Chats" component={AdminChats} />
       <Tab.Screen name="Materials" component={AdminMaterials} />
       <Tab.Screen name="Quizzes" component={AdminQuizzes} />
+      <Tab.Screen name="Videos" component={AdminVideos} />
       <Tab.Screen name="Payments" component={AdminPayments} />
       <Tab.Screen name="Attendance" component={AttendanceManagement} />
     </Tab.Navigator>

@@ -46,11 +46,24 @@ export const useAuth = () => {
         // Try to sign in first
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         currentUser = userCredential.user;
+        
+        // Check if user exists in Firestore
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data() as User;
+          // Verify role matches
+          if (userData.role !== role) {
+            throw new Error('Invalid role for this account');
+          }
+          setUser(userData);
+          return true;
+        }
       } catch (signInError) {
+        // If sign in fails and this is a new registration
         if (role === 'student' && !studentId) {
           throw new Error('Student ID generation is required for registration');
         }
-        // If sign in fails, create a new user
+        // Create a new user
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         currentUser = userCredential.user;
       }
