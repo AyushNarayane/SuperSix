@@ -122,12 +122,16 @@ export const StudentHome = () => {
     <View style={styles.liveClassCard}>
       <Text style={styles.classTitle}>{item.title}</Text>
       <Text style={styles.classInfo}>{new Date(item.startTime).toLocaleTimeString()} - {item.status}</Text>
-      {item.googleMeetLink && (
+      {item.zoomLink && (
         <TouchableOpacity 
           style={styles.meetButton}
-          onPress={() => Linking.openURL(item.googleMeetLink)}
+          onPress={() => {
+            if (item.zoomLink) {  // Type guard to ensure zoomLink is defined
+              Linking.openURL(item.zoomLink);
+            }
+          }}  
         >
-          <Text style={styles.meetButtonText}>Join Meet</Text>
+          <Text style={styles.meetButtonText}>Join Zoom</Text>
         </TouchableOpacity>
       )}
     </View>

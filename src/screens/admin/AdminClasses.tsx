@@ -8,6 +8,7 @@ import { useAuth } from '../../hooks/useAuth';
 interface ClassWithId extends LiveClass {
   id: string;
   description?: string;
+  zoomLink?: string;
 }
 
 export const AdminClasses = () => {
@@ -26,7 +27,7 @@ export const AdminClasses = () => {
     courseId: '',
     startTime: '',
     endTime: '',
-    googleMeetLink: '',
+    zoomLink: '',
     duration: 0,
     status: 'scheduled' as 'scheduled' | 'ongoing' | 'completed',
     createdBy: '',
@@ -94,7 +95,7 @@ export const AdminClasses = () => {
       courseId: '',
       startTime: '',
       endTime: '',
-      googleMeetLink: '',
+      zoomLink: '',
       duration: 0,
       status: 'scheduled' as 'scheduled' | 'ongoing' | 'completed',
       createdBy: '',
@@ -111,7 +112,7 @@ export const AdminClasses = () => {
       courseId: cls.courseId || '',
       startTime: cls.startTime || '',
       endTime: cls.endTime || '',
-      googleMeetLink: cls.googleMeetLink || '',
+      zoomLink: cls.zoomLink || '',
       duration: cls.duration || 0,
       createdBy: cls.createdBy || '',
       createdAt: cls.createdAt || '',
@@ -141,7 +142,7 @@ export const AdminClasses = () => {
           courseId: newClass.courseId,
           startTime: newClass.startTime,
           endTime: newClass.endTime,
-          googleMeetLink: newClass.googleMeetLink,
+          zoomLink: newClass.zoomLink,
           duration: newClass.duration,
           status: newClass.status,
           createdBy: user.name,
@@ -163,7 +164,7 @@ export const AdminClasses = () => {
           courseId: newClass.courseId,
           startTime: newClass.startTime,
           endTime: newClass.endTime,
-          googleMeetLink: newClass.googleMeetLink,
+          zoomLink: newClass.zoomLink,
           duration: newClass.duration,
           status: newClass.status,
           createdBy: user.name,
@@ -259,8 +260,8 @@ export const AdminClasses = () => {
           </View>
           
           <View style={styles.detailsSection}>
-            <Text style={styles.detailsLabel}>Google Meet Link:</Text>
-            <Text style={styles.detailsValue}>{selectedClass.googleMeetLink || 'Not specified'}</Text>
+            <Text style={styles.detailsLabel}>Zoom Link:</Text>
+            <Text style={styles.detailsValue}>{selectedClass.zoomLink || 'Not specified'}</Text>
           </View>
           
           <View style={styles.detailsSection}>
@@ -358,12 +359,12 @@ export const AdminClasses = () => {
                 placeholder="YYYY-MM-DD HH:mm"
               />
 
-              <Text style={styles.inputLabel}>Google Meet Link</Text>
+              <Text style={styles.inputLabel}>Zoom Link</Text>
               <TextInput
                 style={styles.input}
-                value={newClass.googleMeetLink}
-                onChangeText={(text) => setNewClass({...newClass, googleMeetLink: text})}
-                placeholder="https://meet.google.com/..."
+                value={newClass.zoomLink}
+                onChangeText={(text) => setNewClass({...newClass, zoomLink: text})}
+                placeholder="https://zoom.us/j/..."
               />
 
               <Text style={styles.inputLabel}>Duration (minutes)</Text>

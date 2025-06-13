@@ -59,7 +59,7 @@ export interface LiveClass {
   courseId: string;
   startTime: string;
   endTime: string;
-  googleMeetLink: string;
+  zoomLink?: string;
   duration: number; // in minutes
   status: 'scheduled' | 'ongoing' | 'completed';
   createdBy: string;
